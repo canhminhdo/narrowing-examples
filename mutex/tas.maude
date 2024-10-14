@@ -1,21 +1,31 @@
+fmod LOC is
+    sorts RsLoc CsLoc Loc .
+    subsorts RsLoc CsLoc < Loc .
+
+    op rs : -> RsLoc [ctor] .
+    op cs : -> CsLoc [ctor] .
+endfm
+
 fmod PID is
     sort Pid .
 endfm
 
 fmod PROC is
     pr PID .
+    pr LOC .
     sorts RsProc CsProc Proc .
-    subsort RsProc CsProc < Proc .
+    subsorts RsProc CsProc < Proc .
 
-    op pc[_]:`rs : Pid -> RsProc [ctor] .
-    op pc[_]:`cs : Pid -> CsProc [ctor] .
+    op (pc[_]:_) : Pid Loc -> Proc [ctor] .
+    op (pc[_]:_) : Pid RsLoc -> RsProc [ctor] .
+    op (pc[_]:_) : Pid CsLoc -> CsProc [ctor] .
 endfm
 
 fmod PROC-SET is
     pr PROC .
     sorts RsProcSet CsProcSet ProcSet .
-    subsort RsProc < RsProcSet < ProcSet .
-    subsort CsProc < CsProcSet < ProcSet .
+    subsorts RsProc < RsProcSet < ProcSet .
+    subsorts CsProc < CsProcSet < ProcSet .
     subsort Proc < ProcSet .
 
     op void : -> ProcSet [ctor] .
@@ -30,8 +40,8 @@ mod TAS is
 
     op {_|`locked:_} : ProcSet Bool -> Config [ctor] .
 
-    var PSET PSET' : ProcSet .   
-    var RsPSET RsPSET' : RsProcSet .
+    vars PSET PSET' : ProcSet .   
+    vars RsPSET RsPSET' : RsProcSet .
     vars P P' : Pid .
     var B : Bool .
 

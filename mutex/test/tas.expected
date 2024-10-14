@@ -1,0 +1,18 @@
+==========================================
+{fold} vu-narrow [1] in TAS : {RsPSET | locked: false} =>* {(pc[P]: cs) PSET' |
+    locked: B} .
+
+state: {pc[@1:Pid]: cs | locked: true}
+accumulated substitution:
+RsPSET --> pc[@1:Pid]: rs
+variant unifier:
+PSET' --> void
+P --> %1:Pid
+B --> true
+@1:Pid --> %1:Pid
+==========================================
+{fold} vu-narrow [1] in TAS : {RsPSET | locked: false} =>* {(pc[P]: cs) (pc[
+    P']: cs) PSET' | locked: B} .
+
+No solution.
+Bye.
