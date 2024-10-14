@@ -40,8 +40,8 @@ mod TAS is
 
     op {_|`locked:_} : ProcSet Bool -> Config [ctor] .
 
-    vars PSET PSET' : ProcSet .   
     vars RsPSET RsPSET' : RsProcSet .
+    vars PSET PSET' : ProcSet .   
     vars P P' : Pid .
     var B : Bool .
 

@@ -66,9 +66,9 @@ mod QLOCK is
     
     op {_|`queue:_} : ProcSet Queue{Pid} -> Config [ctor] .
     
-    var PSET : ProcSet . 
     var RWPSET : RWProcSet .
     vars Q Q' : Queue{Pid} .
+    var PSET : ProcSet . 
     vars P P' : Pid .
     var PROC : Proc .
 

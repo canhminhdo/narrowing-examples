@@ -1,0 +1,120 @@
+fmod LOC is
+    sorts RsLoc WsLoc RWLoc CsLoc Loc .
+    subsorts RsLoc WsLoc < RWLoc .
+    subsorts RWLoc CsLoc < Loc .
+
+    op rs : -> RsLoc [ctor] .
+    op ws : -> WsLoc [ctor] .
+    op cs : -> CsLoc [ctor] .
+endfm
+
+fmod PID is
+    sort Pid .
+endfm
+
+fmod NAT-FVP is
+    sorts Nat NzNat . 
+    subsort NzNat < Nat .
+
+    op 0 : -> Nat [ctor] .
+    op 1 : -> NzNat [ctor] .
+    op _+_ : NzNat Nat -> NzNat [ctor assoc comm id: 0] .
+    op _+_ : Nat Nat -> Nat [ctor assoc comm id: 0] .
+endfm
+
+fmod PROC is
+    pr PID .
+    pr LOC .
+    pr NAT-FVP .
+    sorts RsProc WsProc RWProc CsProc Proc .
+    subsorts RsProc WsProc < RWProc .
+    subsorts RWProc CsProc < Proc .
+
+    op pc[_]:_,_ : Pid Loc Nat -> Proc [ctor] .
+    op pc[_]:_,_ : Pid RsLoc Nat -> RsProc [ctor] .
+    op pc[_]:_,_ : Pid WsLoc Nat -> WsProc [ctor] .
+    op pc[_]:_,_ : Pid CsLoc Nat -> CsProc [ctor] .
+endfm
+
+fmod PROC-SET is
+    pr PROC .
+    sorts RsProcSet WsProcSet RWProcSet CsProcSet ProcSet .
+    subsorts RsProcSet WsProcSet < RWProcSet .
+    subsorts RWProcSet CsProcSet < ProcSet .
+    subsort RsProc < RsProcSet .
+    subsort WsProc < WsProcSet .
+    subsort CsProc < CsProcSet .
+    subsort Proc < ProcSet .
+
+    op void : -> ProcSet [ctor] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
+    op __ : RWProcSet RWProcSet -> RWProcSet [ctor ditto] .
+endfm
+
+fmod IBOOL is
+    sorts True False IBool .
+    subsorts True False < IBool .
+
+    op true : -> True [ctor] . 
+    op false : -> False [ctor] .
+endfm
+
+fmod IARRAY is
+    pr NAT-FVP .
+    pr IBOOL .
+    sorts TElem FElem Elem TArray FArray Array .
+    subsorts TElem < TArray < Array .
+    subsorts FElem < FArray < Array .
+    subsorts TElem FElem < Elem < Array .
+    
+    --- an array must has at least one false element
+    op empty : -> Array [ctor] . 
+    op [_:_] : Nat True -> TElem [ctor] . 
+    op [_:_] : Nat False -> FElem [ctor] . 
+    op __ : FArray Array -> Array [ctor assoc comm id: empty] .
+    op __ : FArray FArray -> FArray [ctor ditto] .
+endfm
+
+mod ANDERSON is
+    pr PROC-SET .
+    pr IARRAY .
+    sort Config . 
+
+    op {_|`next:_|`array:_} : ProcSet Nat Array -> Config [ctor] .
+  
+    vars RWPSET RWPSET' : RWProcSet .
+    vars N1 N2 N3 N4 N5 : Nat .
+    vars PSET PSET' : ProcSet . 
+    vars B1 B2 : IBool .
+    vars A A' : Array .
+    vars P P' : Pid .
+    var PROC : Proc .
+    vars L L' : Loc .
+
+    eq [no-redundance-next] : (pc[P]: L, N1) (pc[P']: L', N1) = (pc[P]: L, N1) .
+    eq [no-redundance-proc] : (pc[P]: L, N1) (pc[P]: L', N2) = (pc[P]: L, N1) .
+    eq [no-redundance-array] : [N1 : B1] [N1 : B2] = [N1 : B1] .
+
+    --- we suppose that there is an infinite array and at least one element is false
+    rl [want] : 
+        {(pc[P]: rs, N1) PSET | next: N2 | array: A }
+    =>  {(pc[P]: ws, N2) PSET | next: N2 + 1 | array: A } [narrowing] .
+
+    rl [try] : 
+        {(pc[P]: ws, N1) PSET | next: N2 | array: A [N1 : true] A' }
+    =>  {(pc[P]: cs, N1) PSET | next: N2 | array: A [N1 : true] A' } [narrowing] .
+
+    rl [exit] : 
+        {(pc[P]: cs, N1) PSET | next: N2 | array: A [N1 : true] [N1 + 1 : false] A' }
+    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: A [N1 : true] [N1 + 1 : true] A' } [narrowing] .
+endm
+
+--- Proving cs is reachable
+fvu-narrow [1] in ANDERSON : 
+    {RWPSET | next: N1 | array: A} 
+=>* {(pc[P]: cs, N2) PSET' | next: N4 | array: A'} .
+
+--- Negatively prove the mutex property
+{fold,path} vu-narrow [1] in ANDERSON : 
+    {RWPSET | next: N1 | array: A} 
+=>* {(pc[P]: cs, N3) (pc[P']: cs, N4) PSET | next: N5 | array: A'} .
