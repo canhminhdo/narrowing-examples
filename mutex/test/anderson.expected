@@ -1,0 +1,24 @@
+==========================================
+fvu-narrow [1] in ANDERSON : {RWPSET | next: N1 | array: A} =>* {(pc[P]: cs,
+    N2) PSET' | next: N4 | array: A'} .
+
+state: {pc[@1:Pid]: cs, @2:Nat | next: @3:Nat | array: [@2:Nat : true]}
+accumulated substitution:
+RWPSET --> pc[@1:Pid]: ws, @2:Nat
+N1 --> @3:Nat
+A --> [@2:Nat : true]
+variant unifier:
+PSET' --> void
+P --> %1:Pid
+N2 --> %2:Nat
+N4 --> %3:Nat
+A' --> [%2:Nat : true]
+@1:Pid --> %1:Pid
+@2:Nat --> %2:Nat
+@3:Nat --> %3:Nat
+==========================================
+{fold, path} vu-narrow [1] in ANDERSON : {RWPSET | next: N1 | array: A} =>* {(
+    pc[P]: cs, N3) (pc[P']: cs, N4) PSET | next: N5 | array: A'} .
+
+No solution.
+Bye.
