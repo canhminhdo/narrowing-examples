@@ -1,9 +1,9 @@
 fmod LOC is
-    sorts RsLoc CsLoc Loc .
-    subsorts RsLoc CsLoc < Loc .
+    sorts RsLoc Loc .
+    subsort RsLoc < Loc .
 
     op rs : -> RsLoc [ctor] .
-    op cs : -> CsLoc [ctor] .
+    op cs : -> Loc [ctor] .
 endfm
 
 fmod PID is
@@ -13,25 +13,22 @@ endfm
 fmod PROC is
     pr PID .
     pr LOC .
-    sorts RsProc CsProc Proc .
-    subsorts RsProc CsProc < Proc .
+    sorts RsProc Proc .
+    subsort RsProc < Proc .
 
-    op (pc[_]:_) : Pid Loc -> Proc [ctor] .
     op (pc[_]:_) : Pid RsLoc -> RsProc [ctor] .
-    op (pc[_]:_) : Pid CsLoc -> CsProc [ctor] .
+    op (pc[_]:_) : Pid Loc -> Proc [ctor] .
 endfm
 
 fmod PROC-SET is
     pr PROC .
-    sorts RsProcSet CsProcSet ProcSet .
+    sorts RsProcSet ProcSet .
     subsorts RsProc < RsProcSet < ProcSet .
-    subsorts CsProc < CsProcSet < ProcSet .
     subsort Proc < ProcSet .
 
     op void : -> ProcSet [ctor] .
     op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
     op __ : RsProcSet RsProcSet -> RsProcSet [ctor ditto] .
-    op __ : CsProcSet CsProcSet -> CsProcSet [ctor ditto] .
 endfm
 
 mod TAS is

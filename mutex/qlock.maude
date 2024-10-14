@@ -1,11 +1,10 @@
 fmod LOC is
-    sorts RsLoc WsLoc RWLoc CsLoc Loc .
-    subsorts RsLoc WsLoc < RWLoc .
-    subsorts RWLoc CsLoc < Loc .
+    sorts RWLoc Loc .
+    subsort RWLoc < Loc .
 
-    op rs : -> RsLoc [ctor] .
-    op ws : -> WsLoc [ctor] .
-    op cs : -> CsLoc [ctor] .
+    op rs : -> RWLoc [ctor] .
+    op ws : -> RWLoc [ctor] .
+    op cs : -> Loc [ctor] .
 endfm
 
 fmod PID is
@@ -15,24 +14,17 @@ endfm
 fmod PROC is
     pr PID .
     pr LOC .
-    sorts RsProc WsProc RWProc CsProc Proc .
-    subsorts RsProc WsProc < RWProc .
-    subsorts RWProc CsProc < Proc .
+    sorts RWProc Proc .
+    subsorts RWProc < Proc .
 
     op pc[_]:_ : Pid Loc -> Proc [ctor] .
-    op pc[_]:_ : Pid RsLoc -> RsProc [ctor] .
-    op pc[_]:_ : Pid WsLoc -> WsProc [ctor] .
-    op pc[_]:_ : Pid CsLoc -> CsProc [ctor] .
+    op pc[_]:_ : Pid RWLoc -> RWProc [ctor] .
 endfm
 
 fmod PROC-SET is
     pr PROC .
-    sorts RsProcSet WsProcSet RWProcSet CsProcSet ProcSet .
-    subsorts RsProcSet WsProcSet < RWProcSet .
-    subsorts RWProcSet CsProcSet < ProcSet .
-    subsort RsProc < RsProcSet .
-    subsort WsProc < WsProcSet .
-    subsort CsProc < CsProcSet .
+    sorts RWProcSet ProcSet .
+    subsorts RWProc < RWProcSet < ProcSet .
     subsort Proc < ProcSet .
 
     op void : -> ProcSet [ctor] .
