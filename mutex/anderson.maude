@@ -1,11 +1,10 @@
 fmod LOC is
-    sorts RsLoc WsLoc RWLoc CsLoc Loc .
-    subsorts RsLoc WsLoc < RWLoc .
-    subsorts RWLoc CsLoc < Loc .
+    sorts RsLoc WsLoc RWLoc Loc .
+    subsorts RsLoc WsLoc < RWLoc < Loc .
 
     op rs : -> RsLoc [ctor] .
     op ws : -> WsLoc [ctor] .
-    op cs : -> CsLoc [ctor] .
+    op cs : -> Loc [ctor] .
 endfm
 
 fmod PID is
@@ -26,28 +25,28 @@ fmod PROC is
     pr PID .
     pr LOC .
     pr NAT-FVP .
-    sorts RsProc WsProc RWProc CsProc Proc .
-    subsorts RsProc WsProc < RWProc .
-    subsorts RWProc CsProc < Proc .
+    sorts RsProc WsProc RWProc Proc .
+    subsorts RsProc WsProc < RWProc < Proc .
 
-    op pc[_]:_,_ : Pid Loc Nat -> Proc [ctor] .
-    op pc[_]:_,_ : Pid RsLoc Nat -> RsProc [ctor] .
-    op pc[_]:_,_ : Pid WsLoc Nat -> WsProc [ctor] .
-    op pc[_]:_,_ : Pid CsLoc Nat -> CsProc [ctor] .
+    op (_| pc:_, place:_) : Pid Loc Nat -> Proc [ctor] .
+    op (_| pc:_) : Pid RsLoc -> RsProc [ctor] .
+    op (_| pc:_, place:_) : Pid WsLoc Nat -> WsProc [ctor] .
 endfm
 
 fmod PROC-SET is
     pr PROC .
-    sorts RsProcSet WsProcSet RWProcSet CsProcSet ProcSet .
-    subsorts RsProcSet WsProcSet < RWProcSet .
-    subsorts RWProcSet CsProcSet < ProcSet .
+    sorts EmpProcSet RsProcSet WsProcSet RWProcSet ProcSet .
     subsort RsProc < RsProcSet .
     subsort WsProc < WsProcSet .
-    subsort CsProc < CsProcSet .
+    subsort RWProc < RWProcSet .
     subsort Proc < ProcSet .
+    subsorts EmpProcSet < RsProcSet WsProcSet < RWProcSet < ProcSet .
 
-    op void : -> ProcSet [ctor] .
+    op void : -> EmpProcSet [ctor] .
     op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
+    op __ : EmpProcSet EmpProcSet -> EmpProcSet [ctor ditto] .
+    op __ : RsProcSet RsProcSet -> RsProcSet [ctor ditto] .
+    op __ : WsProcSet WsProcSet -> WsProcSet [ctor ditto] .
     op __ : RWProcSet RWProcSet -> RWProcSet [ctor ditto] .
 endfm
 
@@ -62,17 +61,20 @@ endfm
 fmod IARRAY is
     pr NAT-FVP .
     pr IBOOL .
-    sorts TElem FElem Elem TArray FArray Array .
-    subsorts TElem < TArray < Array .
-    subsorts FElem < FArray < Array .
+    sorts EmpArray TElem FElem Elem TArray FArray Array .
+    subsorts TElem < TArray .
+    subsorts FElem < FArray .
     subsorts TElem FElem < Elem < Array .
+    subsorts EmpArray < TArray FArray < Array .
     
     --- an array must has at least one false element
-    op empty : -> Array [ctor] . 
+    op empty : -> EmpArray [ctor] . 
     op [_:_] : Nat True -> TElem [ctor] . 
     op [_:_] : Nat False -> FElem [ctor] . 
-    op __ : FArray Array -> Array [ctor assoc comm id: empty] .
+    op __ : Array Array -> Array [ctor assoc id: empty] .
     op __ : FArray FArray -> FArray [ctor ditto] .
+    op __ : TArray TArray -> TArray [ctor ditto] .
+    op __ : EmpArray EmpArray -> EmpArray [ctor ditto] .
 endfm
 
 mod ANDERSON is
@@ -83,38 +85,41 @@ mod ANDERSON is
     op {_|`next:_|`array:_} : ProcSet Nat Array -> Config [ctor] .
   
     vars RWPSET RWPSET' : RWProcSet .
+    vars RsPSET : RsProcSet .
     vars N1 N2 N3 N4 N5 : Nat .
+    vars NzN1 : NzNat .
     vars PSET PSET' : ProcSet . 
     vars B1 B2 : IBool .
     vars A A' : Array .
+    vars TA : TArray .
+    vars FA : FArray .
     vars P P' : Pid .
     var PROC : Proc .
     vars L L' : Loc .
 
-    eq [no-redundance-next] : (pc[P]: L, N1) (pc[P']: L', N1) = (pc[P]: L, N1) .
-    eq [no-redundance-proc] : (pc[P]: L, N1) (pc[P]: L', N2) = (pc[P]: L, N1) .
+    --- eq [no-redundance-next] : (P | pc: L, place: N1) (P' | pc: L', place: N1) = (P | pc: L, place: N1) .
+    eq [no-redundance-proc] : (P | pc: L, place: N1) (P | pc: L', place: N2) = (P | pc: L, place: N1) .
     eq [no-redundance-array] : [N1 : B1] [N1 : B2] = [N1 : B1] .
 
-    --- we suppose that there is an infinite array and at least one element is false
     rl [want] : 
-        {(pc[P]: rs, N1) PSET | next: N2 | array: A }
-    =>  {(pc[P]: ws, N2) PSET | next: N2 + 1 | array: A } [narrowing] .
+        {(P | pc: rs) PSET | next: N1 | array: A }
+    =>  {(P | pc: ws, place: N1) PSET | next: (N1 + 1) | array: A } [narrowing] .
 
     rl [try] : 
-        {(pc[P]: ws, N1) PSET | next: N2 | array: A [N1 : true] A' }
-    =>  {(pc[P]: cs, N1) PSET | next: N2 | array: A [N1 : true] A' } [narrowing] .
+        {(P | pc: ws, place: N1) PSET | next: N1 + NzN1 | array: TA [N1 : true] FA }
+    =>  {(P | pc: cs, place: N1) PSET | next: N1 + NzN1 | array: TA [N1 : true] FA } [narrowing] .
 
     rl [exit] : 
-        {(pc[P]: cs, N1) PSET | next: N2 | array: A [N1 : true] [N1 + 1 : false] A' }
-    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: A [N1 : true] [N1 + 1 : true] A' } [narrowing] .
+        {(P | pc: cs, place: N1) PSET | next: N1 + NzN1 | array: TA [N1 : true] [N1 + 1 : false] FA }
+    =>  {(P | pc: rs) PSET | next: N1 + NzN1 | array: TA [N1 : true] [N1 + 1 : true] FA } [narrowing] .
 endm
 
 --- Proving cs is reachable
-fvu-narrow [1] in ANDERSON : 
-    {RWPSET | next: N1 | array: A} 
-=>* {(pc[P]: cs, N2) PSET' | next: N4 | array: A'} .
+{fold,path} vu-narrow {filter,delay} [1] in ANDERSON : 
+    {RsPSET | next: N1 | array: TA [N1 : true] FA} 
+=>* {(P | pc: cs, place: N2) PSET | next: N2 + NzN1 | array: A} .
 
 --- Negatively prove the mutex property
-{fold,path} vu-narrow [1] in ANDERSON : 
-    {RWPSET | next: N1 | array: A} 
-=>* {(pc[P]: cs, N3) (pc[P']: cs, N4) PSET | next: N5 | array: A'} .
+{fold,path} vu-narrow {filter,delay} [1] in ANDERSON :
+    { RsPSET | next: N1 | array: [N1 : true] FA}
+=>* {(P | pc: cs, place: N2) (P' | pc: cs, place: N3) PSET | next: N4 | array: A} .
