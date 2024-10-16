@@ -67,7 +67,6 @@ fmod IARRAY is
     subsorts TElem FElem < Elem < Array .
     subsorts EmpArray < TArray FArray < Array .
     
-    --- an array must has at least one false element
     op empty : -> EmpArray [ctor] . 
     op [_:_] : Nat True -> TElem [ctor] . 
     op [_:_] : Nat False -> FElem [ctor] . 
@@ -99,7 +98,7 @@ mod ANDERSON is
 
     --- eq [no-redundance-next] : (P | pc: L, place: N1) (P' | pc: L', place: N1) = (P | pc: L, place: N1) .
     eq [no-redundance-proc] : (P | pc: L, place: N1) (P | pc: L', place: N2) = (P | pc: L, place: N1) .
-    eq [no-redundance-array] : [N1 : B1] [N1 : B2] = [N1 : B1] .
+    --- eq [no-redundance-array] : [N1 : B1] [N1 : B2] = [N1 : B1] .
 
     rl [want] : 
         {(P | pc: rs) PSET | next: N1 | array: A }
