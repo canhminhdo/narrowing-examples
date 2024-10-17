@@ -67,10 +67,10 @@ fmod IARRAY is
     subsorts TElem FElem < Elem < Array .
     subsorts EmpArray < TArray FArray < Array .
     
-    op empty : -> EmpArray [ctor] . 
+    op emp : -> EmpArray [ctor] . 
     op [_:_] : Nat True -> TElem [ctor] . 
     op [_:_] : Nat False -> FElem [ctor] . 
-    op __ : Array Array -> Array [ctor assoc id: empty] .
+    op __ : Array Array -> Array [ctor assoc id: emp] .
     op __ : FArray FArray -> FArray [ctor ditto] .
     op __ : TArray TArray -> TArray [ctor ditto] .
     op __ : EmpArray EmpArray -> EmpArray [ctor ditto] .
