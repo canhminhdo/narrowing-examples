@@ -79,12 +79,12 @@ mod QLOCK is
     =>  {(pc[P]: rs) PSET | queue: deq(Q) } [narrowing] .
 endm
 
---- Proving cs reachable
-{fold} vu-narrow [1] in QLOCK : 
+--- Fairness of protocol behavior
+{fold,path} vu-narrow {filter,delay} [1] in QLOCK : 
     {RWPSET | queue: Q}
 =>* {(pc[P]: cs) PSET | queue: Q'} .
 
 --- Negatively prove the mutex property
-{fold} vu-narrow [1] in QLOCK : 
+{fold,path} vu-narrow {filter,delay} [1] in QLOCK : 
     {RWPSET | queue: Q}
 =>* {(pc[P]: cs) (pc[P']: cs) PSET | queue: Q'} .

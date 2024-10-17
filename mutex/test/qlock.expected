@@ -1,6 +1,6 @@
 ==========================================
-{fold} vu-narrow [1] in QLOCK : {RWPSET | queue: Q} =>* {(pc[P]: cs) PSET |
-    queue: Q'} .
+{fold, path} vu-narrow {delay, filter} [1] in QLOCK : {RWPSET | queue: Q} =>* {
+    (pc[P]: cs) PSET | queue: Q'} .
 
 state: {pc[@1:Pid]: cs | queue: @1:Pid | @2:Queue{Pid}}
 accumulated substitution:
@@ -13,8 +13,8 @@ Q' --> %1:Pid | %2:Queue{Pid}
 @1:Pid --> %1:Pid
 @2:Queue{Pid} --> %2:Queue{Pid}
 ==========================================
-{fold} vu-narrow [1] in QLOCK : {RWPSET | queue: Q} =>* {(pc[P]: cs) (pc[P']:
-    cs) PSET | queue: Q'} .
+{fold, path} vu-narrow {delay, filter} [1] in QLOCK : {RWPSET | queue: Q} =>* {
+    (pc[P]: cs) (pc[P']: cs) PSET | queue: Q'} .
 
 No solution.
 Bye.

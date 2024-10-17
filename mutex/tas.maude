@@ -51,12 +51,12 @@ mod TAS is
     =>  {(pc[P]: rs) PSET | locked: false} [narrowing] .
 endm
 
---- Proving cs reachable
-{fold} vu-narrow [1] in TAS : 
+--- Fairness of protocol behavior
+{fold,path} vu-narrow {filter,delay} [1] in TAS : 
     {RsPSET | locked: false} 
 =>* {(pc[P]: cs) PSET' | locked: B} .
 
 --- Negatively prove the mutex property
-{fold} vu-narrow [1] in TAS : 
+{fold,path} vu-narrow {filter,delay} [1] in TAS : 
     {RsPSET | locked: false} 
 =>* {(pc[P]: cs) (pc[P']: cs) PSET' | locked: B} .
