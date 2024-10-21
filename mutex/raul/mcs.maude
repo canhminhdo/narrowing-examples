@@ -22,31 +22,28 @@ fmod NAT-FVP is
     op _=?=_ : Nat Nat -> IBool .
     eq N =?= N = true [variant] .
     eq N + NzN =?= N = false [variant] .
-
-    op iif_then_else_fi : IBool Nat Nat -> Nat .
-    eq iif true then N else N' fi = N [variant] .
-    eq iif false then N else N' fi = N' [variant] .
 endfm
 
 fmod LOC is
     pr IBOOL .
-    sorts RsLoc NcLoc Loc .
-    subsorts RsLoc < NcLoc < Loc .
+    sorts RsLoc WsLoc CsLoc NCLoc CLoc Loc .
+    subsorts RsLoc WsLoc < NCLoc < Loc .
+    subsorts CsLoc < CLoc < Loc .
 
     op rs : -> RsLoc [ctor] .
-    op l1 : -> NcLoc [ctor] .
-    op l2 : -> NcLoc [ctor] .
-    op l3 : -> NcLoc [ctor] .
-    op l4 : -> NcLoc [ctor] .
-    op l5 : -> NcLoc [ctor] .
-    op l6 : -> NcLoc [ctor] .
-    op l7 : -> NcLoc [ctor] .
-    op l8 : -> NcLoc [ctor] .
-    op l9 : -> NcLoc [ctor] .
-    op l10 : -> NcLoc [ctor] .
-    op l11 : -> NcLoc [ctor] .
-    op l12 : -> NcLoc [ctor] .
-    op cs : -> Loc [ctor] .
+    op l1 : -> RsLoc [ctor] .
+    op l2 : -> RsLoc [ctor] .
+    op l3 : -> RsLoc [ctor] .
+    op l4 : -> WsLoc [ctor] .
+    op l5 : -> WsLoc [ctor] .
+    op l6 : -> WsLoc [ctor] .
+    op l7 : -> CsLoc [ctor] .
+    op l8 : -> CsLoc [ctor] .
+    op l9 : -> CsLoc [ctor] .
+    op l10 : -> CsLoc [ctor] .
+    op l11 : -> CsLoc [ctor] .
+    op l12 : -> CsLoc [ctor] .
+    op cs : -> CsLoc [ctor] .
 
     vars L L' : Loc .
     op iif_then_else_fi : IBool Loc Loc -> Loc .
@@ -57,27 +54,33 @@ endfm
 fmod PROC is
     pr LOC .
     pr NAT-FVP .
-    sorts RsInitProc RsProc Proc .
-    subsort RsInitProc < RsProc < Proc .
+    sorts RsProc WsProc CsProc CProc NCProc Proc .
+    subsorts RsProc WsProc < NCProc < Proc .
+    subsorts CsProc < CProc < Proc .
 
-    op (_| pc:_, next:_, pred:_, lock:_) : NzNat Loc Nat Nat IBool -> Proc [ctor] .
     op (_| pc:_, next:_, pred:_, lock:_) : NzNat RsLoc Nat Nat IBool -> RsProc [ctor] .
-    op (_| pc:_, next:_, pred:_, lock:_) : NzNat RsLoc Zero Zero False -> RsInitProc [ctor] .
+    op (_| pc:_, next:_, pred:_, lock:_) : NzNat WsLoc Nat Nat IBool -> WsProc [ctor] .
+    op (_| pc:_, next:_, pred:_, lock:_) : NzNat CsLoc Nat Nat IBool -> CsProc [ctor] .
+    op (_| pc:_, next:_, pred:_, lock:_) : NzNat Loc Nat Nat IBool -> Proc [ctor] .
 endfm
 
 fmod PROC-SET is
     pr PROC .
-    sorts EmpProcSet RsInitProcSet RsProcSet ProcSet  .
-    subsorts EmpProcSet < RsInitProcSet < RsProcSet < ProcSet .
+    sorts EmpProcSet RsProcSet WsProcSet CsProcSet NCProcSet CProcSet ProcSet  .
+    subsorts EmpProcSet < RsProcSet .
+    subsorts RsProcSet WsProcSet < NCProcSet < ProcSet .
+    subsorts CsProcSet < CProcSet < ProcSet .
     subsort RsProc < RsProcSet .
-    subsort RsInitProc < RsInitProcSet .
+    subsort WsProc < WsProcSet .
+    subsort CsProc < CsProcSet .
     subsort Proc < ProcSet .
 
     op emp : -> EmpProcSet [ctor] .
     op __ : EmpProcSet EmpProcSet -> EmpProcSet [ctor assoc comm id: emp] .
-    op __ : ProcSet ProcSet -> ProcSet [ctor ditto] .
     op __ : RsProcSet RsProcSet -> RsProcSet [ctor ditto] .
-    op __ : RsInitProcSet RsInitProcSet -> RsInitProcSet [ctor ditto] .
+    op __ : WsProcSet WsProcSet -> WsProcSet [ctor ditto] .
+    op __ : CsProcSet CsProcSet -> CsProcSet [ctor ditto] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor ditto] .
 endfm
 
 mod MCS is
@@ -86,13 +89,15 @@ mod MCS is
     
     op {_|`glock:_} : ProcSet Nat -> Config [ctor] .
 
-    vars RsPSET : RsProcSet .
-    vars RsInitPSET : RsInitProcSet .
+    var NCPS : NCProcSet .
+    var RsPS : RsProcSet .
     vars P Q NZ NZ' NZ1 NzN : NzNat .
     vars N N1 N2 N3 N4 N5 N' N1' N2' N3' N4' N5' : Nat .
     vars PSET PSET' : ProcSet .
     vars B  B' : IBool .
     vars L L' : Loc .
+    vars CL CL' : CLoc .
+    vars NCL NCL' : NCLoc .
 
     --- want
     rl [want] : 
@@ -112,7 +117,12 @@ mod MCS is
     --- chprd
     rl [chprd] :  
         { (NZ | pc: l3, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: (iif N2 =?= 0 then cs else l4 fi), next: N1, pred: N2, lock: B) PSET | glock: N3 } [narrowing] .
+    =>  if N2 == 0
+        then
+           { (NZ | pc: cs, next: N1, pred: N2, lock: B) PSET | glock: N3 }
+        else
+           { (NZ | pc: l4, next: N1, pred: N2, lock: B) PSET | glock: N3 }
+        fi [narrowing] .
 
     --- stlck
     rl [stlck] :  
@@ -139,12 +149,22 @@ mod MCS is
     --- rpnxt
     rl [rpnxt] :  
         { (NZ | pc: l7, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: (iif N1 =?= 0 then l8 else l11 fi), next: N1, pred: N2, lock: B) PSET | glock: N3 } [narrowing] .
-
+    => if N1 == 0
+        then
+           { (NZ | pc: l8, next: N1, pred: N2, lock: B) PSET | glock: N3 }
+        else
+           { (NZ | pc: l11, next: N1, pred: N2, lock: B) PSET | glock: N3 }
+        fi [narrowing] . 
+    
     --- chglk
     rl [chglk] :  
         { (NZ | pc: l8, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: (iif N3 =?= NZ then l9 else l10 fi), next: N1, pred: N2, lock: B) PSET | glock: (iif N3 =?= NZ then 0 else N3 fi) } [narrowing] .
+    =>  if N3 == NZ
+        then
+           { (NZ | pc: l9, next: N1, pred: N2, lock: B) PSET | glock: 0 }
+        else
+           { (NZ | pc: l10, next: N1, pred: N2, lock: B) PSET | glock: N3 }
+        fi [narrowing] . 
 
     --- go2rs1
     rl [go2rs1] :  
@@ -171,13 +191,13 @@ endm
 
 --- Fairness of protocol behavior
 {fold,path} vu-narrow {filter,delay} [1] in MCS : 
-{ RsInitPSET | glock: 0 }
+{ NCPS | glock: 0 }
 =>* 
 {(NZ | pc: cs, next: N1, pred: N2, lock: B) PSET | glock: N3} .
 
 --- Negatively prove the mutex property
 {fold,path} vu-narrow {filter,delay} [1] in MCS : 
-    { RsInitPSET | glock: 0 }git st
+{ NCPS | glock: N4 }
 =>*
 { (NZ | pc: cs, next: N1, pred: N2, lock: B) 
   (NZ' | pc: cs, next: N1', pred: N1', lock: B') PSET | glock: N3} .
