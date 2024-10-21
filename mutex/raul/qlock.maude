@@ -1,0 +1,98 @@
+fmod LOC is
+    sorts RsLoc WsLoc RWLoc CsLoc Loc .
+    subsorts RsLoc WsLoc < RWLoc .
+    subsorts RWLoc CsLoc < Loc .
+
+    op rs : -> RsLoc [ctor] .
+    op ws : -> WsLoc [ctor] .
+    op cs : -> CsLoc [ctor] .
+endfm
+
+fmod PID is
+    sort Pid .
+endfm
+
+fmod PROC is
+    pr PID .
+    pr LOC .
+    sorts RsProc WsProc RwProc CsProc Proc .
+    subsorts RsProc WsProc < RwProc .
+    subsorts RwProc CsProc < Proc .
+
+    op pc[_]:_ : Pid Loc -> Proc [ctor] .
+    op pc[_]:_ : Pid RsLoc -> RsProc [ctor] .
+    op pc[_]:_ : Pid WsLoc -> WsProc [ctor] .
+    op pc[_]:_ : Pid CsLoc -> CsProc [ctor] .
+endfm
+
+fmod PROC-SET is
+    pr PROC .
+    sorts RsProcSet WsProcSet RwProcSet CsProcSet ProcSet .
+    subsorts RsProcSet WsProcSet < RwProcSet .
+    subsorts RwProcSet CsProcSet < ProcSet .
+    subsort RsProc < RsProcSet .
+    subsort WsProc < WsProcSet .
+    subsort CsProc < CsProcSet .
+    subsort Proc < ProcSet .
+
+    op void : -> ProcSet [ctor] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
+    op __ : RwProcSet RwProcSet -> RwProcSet [ctor ditto] .
+endfm
+
+fmod QUEUE {D :: TRIV} is
+    sort Queue{D} .
+    subsort D$Elt < Queue{D} .
+    
+    op empq : -> Queue{D} [ctor] .
+    op _|_ : Queue{D} Queue{D} -> Queue{D} [ctor assoc id: empq] .
+    op deq : Queue{D} -> D$Elt .
+    
+    var Q : Queue{D} .
+    var E : D$Elt .
+    
+    eq deq(empq) = empq [variant] .
+    eq deq(E | Q) = Q [variant] .
+endfm
+
+view Pid from TRIV to PID is
+    sort Elt to Pid .
+endv
+
+mod QLOCK is
+    pr QUEUE{Pid} .
+    pr PROC-SET .
+    sort Config .
+    
+    op {_|`queue:_} : ProcSet Queue{Pid} -> Config [ctor] .
+    
+    var RWPSET : RwProcSet .
+    vars Q Q' : Queue{Pid} .
+    var PSET : ProcSet . 
+    vars P P' : Pid .
+    var PROC : Proc .
+
+    eq [no-redundant] : PROC PROC = PROC .
+
+    rl [want] : 
+        {(pc[P]: rs) PSET | queue: Q }
+    =>  {(pc[P]: ws) PSET | queue: (Q | P)} [narrowing] .
+
+    rl [try] : 
+        {(pc[P]: ws) PSET | queue: (P | Q) }
+    =>  {(pc[P]: cs) PSET | queue: (P | Q) } [narrowing] .          
+
+    rl [exit] : 
+        {(pc[P]: cs) PSET | queue: Q }
+    =>  {(pc[P]: rs) PSET | queue: deq(Q) } [narrowing] .
+endm
+
+--- Proving cs reachable
+{fold} vu-narrow [1] in QLOCK : 
+    {RWPSET | queue: Q}
+=>* {(pc[P]: cs) PSET | queue: Q'} .
+
+--- Negatively prove the mutex property
+{fold} vu-narrow [1] in QLOCK : 
+    {RWPSET | queue: Q}
+=>* {(pc[P]: cs) (pc[P']: cs) PSET | queue: Q'} .

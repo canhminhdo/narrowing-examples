@@ -1,0 +1,65 @@
+fmod LOC is
+    sorts RsLoc CsLoc Loc .
+    subsorts RsLoc CsLoc < Loc .
+
+    op rs : -> RsLoc [ctor] .
+    op cs : -> CsLoc [ctor] .
+endfm
+
+fmod PID is
+    sort Pid .
+endfm
+
+fmod PROC is
+    pr PID .
+    pr LOC .
+    sorts RsProc CsProc Proc .
+    subsorts RsProc CsProc < Proc .
+
+    op (pc[_]:_) : Pid Loc -> Proc [ctor] .
+    op (pc[_]:_) : Pid RsLoc -> RsProc [ctor] .
+    op (pc[_]:_) : Pid CsLoc -> CsProc [ctor] .
+endfm
+
+fmod PROC-SET is
+    pr PROC .
+    sorts RsProcSet CsProcSet ProcSet .
+    subsorts RsProc < RsProcSet < ProcSet .
+    subsorts CsProc < CsProcSet < ProcSet .
+    subsort Proc < ProcSet .
+
+    op void : -> ProcSet [ctor] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
+    op __ : RsProcSet RsProcSet -> RsProcSet [ctor ditto] .
+    op __ : CsProcSet CsProcSet -> CsProcSet [ctor ditto] .
+endfm
+
+mod TAS is
+    pr PROC-SET .
+    sort Config . 
+
+    op {_|`locked:_} : ProcSet Bool -> Config [ctor] .
+
+    vars RsPSET RsPSET' : RsProcSet .
+    vars PSET PSET' : ProcSet .   
+    vars P P' : Pid .
+    var B : Bool .
+
+    rl [enter] : 
+        {(pc[P]: rs) PSET | locked: false}
+    =>  {(pc[P]: cs) PSET | locked: true} [narrowing] .
+
+    rl [exit] : 
+        {(pc[P]: cs) PSET | locked: B}
+    =>  {(pc[P]: rs) PSET | locked: false} [narrowing] .
+endm
+
+--- Proving cs reachable
+{fold} vu-narrow [1] in TAS : 
+    {RsPSET | locked: false} 
+=>* {(pc[P]: cs) PSET' | locked: B} .
+
+--- Negatively prove the mutex property
+{fold} vu-narrow [1] in TAS : 
+    {RsPSET | locked: false} 
+=>* {(pc[P]: cs) (pc[P']: cs) PSET' | locked: B} .
