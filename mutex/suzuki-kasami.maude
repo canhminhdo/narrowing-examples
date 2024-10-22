@@ -154,7 +154,7 @@ fmod NETWORK is
     sort Network .
     subsort Message < Network .
     op void : -> Network .
-    op __ : Network Network -> Network [assoc comm id: void] .
+    op __ : Network Network -> Network [ctor assoc comm id: void] .
 endfm
 
 fmod PROC is

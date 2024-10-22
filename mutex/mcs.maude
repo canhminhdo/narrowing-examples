@@ -178,7 +178,7 @@ endm
 
 --- Negatively prove the mutex property
 {fold,path} vu-narrow {filter,delay} [1] in MCS : 
-    { RsInitPSET | glock: 0 }git st
+{ RsInitPSET | glock: 0 }
 =>*
 { (NZ | pc: cs, next: N1, pred: N2, lock: B) 
   (NZ' | pc: cs, next: N1', pred: N1', lock: B') PSET | glock: N3} .
