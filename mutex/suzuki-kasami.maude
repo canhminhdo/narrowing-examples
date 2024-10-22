@@ -57,8 +57,8 @@ fmod NAT-SET is
     vars NS : NatSet .
     vars N N' : Nat .
 
-    eq N in (N' NS) = (N =?= N') or-else (N in NS) .
-    eq N in nil = false .
+    eq N in (N' NS) = (N =?= N') or-else (N in NS) [variant] .
+    eq N in nil = false [variant] .
 endfm
 
 fmod LOC is
@@ -104,10 +104,10 @@ fmod QUEUE is
     eq enq(E | Q, E') = E | enq(Q, E') [variant] .
     eq enq(empq, E') = E' | empq [variant] .
     --- \in
-    eq E \in (E' | Q) = (E =?= E') or-else (E \in Q) .
+    eq E \in (E' | Q) = (E =?= E') or-else (E \in Q) [variant] .
     --- empty?
-    eq empty?(E | Q) = false .
-    eq empty?(empq) = true .
+    eq empty?(E | Q) = false [variant] .
+    eq empty?(empq) = true [variant] .
     --- iif_then_else_fi
     eq iif true then Q else Q' fi = Q [variant] .
     eq iif false then Q else Q' fi = Q' [variant] .
