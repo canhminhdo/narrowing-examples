@@ -19,7 +19,7 @@ fmod NAT-FVP is
     vars N N' : Nat .
     vars NzN : NzNat .
 
-    op _=?=_ : Nat Nat -> IBool .
+    op _=?=_ : Nat Nat -> IBool [comm] .
     eq N =?= N = true [variant] .
     eq N + NzN =?= N = false [variant] .
 
@@ -39,6 +39,7 @@ fmod LOC is
     op l2 : -> Loc [ctor] .
     op l3 : -> Loc [ctor] .
     op l4 : -> Loc [ctor] .
+    --- op ws : -> Loc [ctor] .
     op l5 : -> Loc [ctor] .
     op l6 : -> Loc [ctor] .
     op l7 : -> Loc [ctor] .
