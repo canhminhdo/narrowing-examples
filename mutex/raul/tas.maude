@@ -55,11 +55,11 @@ mod TAS is
 endm
 
 --- Proving cs reachable
-{fold} vu-narrow [1] in TAS : 
+fvu-narrow [1] in TAS : 
     {RsPSET | locked: false} 
 =>* {(pc[P]: cs) PSET' | locked: B} .
 
 --- Negatively prove the mutex property
-{fold} vu-narrow [1] in TAS : 
+fvu-narrow [1] in TAS : 
     {RsPSET | locked: false} 
 =>* {(pc[P]: cs) (pc[P']: cs) PSET' | locked: B} .

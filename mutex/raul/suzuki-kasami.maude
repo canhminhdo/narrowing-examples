@@ -1,191 +1,328 @@
-fmod NAT-FVP is
-   sorts Nat NzNat . 
-   subsort NzNat < Nat .
-
-   op 0 : -> Nat [ctor] .
-   op 1 : -> NzNat [ctor] .
-   op _+_ : NzNat Nat -> NzNat [ctor assoc comm id: 0] .
-   op _+_ : Nat Nat -> Nat [ctor assoc comm id: 0] .
-endfm
-
 fmod IBOOL is
     sorts True False IBool .
     subsorts True False < IBool .
 
     op true : -> True [ctor] . 
     op false : -> False [ctor] .
+
+    vars B : IBool .
+
+    op _or-else_ : IBool IBool -> IBool [comm assoc frozen (2)] .
+    eq true or-else B = true [variant] .
+    eq false or-else B = B [variant] .
+
+    op _and-then_ : IBool IBool -> IBool [comm assoc frozen (2)] .
+    eq true and-then B = B [variant] .
+    eq false and-then B = false [variant] .
+
+    op not? : IBool -> IBool .
+    eq not?(true) = false [variant] .
+    eq not?(false) = true [variant] .
+endfm
+
+fmod NAT-FVP is
+    pr IBOOL .
+
+    sorts Nat NzNat . 
+    subsort NzNat < Nat .
+
+    op 0 : -> Nat [ctor] .
+    op 1 : -> NzNat [ctor] .
+    op _+_ : Nat Nat -> Nat [ctor assoc comm id: 0] .
+    op _+_ : NzNat Nat -> NzNat [ctor ditto] .
+
+    vars N : Nat .
+    vars NzN : NzNat .
+
+    op _=?=_ : Nat Nat -> IBool [comm] .
+    eq N =?= N = true [variant] .
+    eq N + NzN =?= N = false [variant] .
+
+    op max : Nat Nat -> Nat [comm] .
+    eq max(N, N) = N [variant] .
+    eq max(N, N + NzN) = N + NzN [variant] .
+endfm
+
+fmod NAT-SET is
+    pr NAT-FVP .
+    pr IBOOL .
+
+    sort NatSet .
+    subsort Nat < NatSet .
+
+    op nil : -> NatSet [ctor] .
+    op __ : NatSet NatSet -> NatSet [ctor comm assoc id: nil] .
+    op _in_ : NatSet Nat -> IBool .
+
+    vars NS : NatSet .
+    vars N N' : Nat .
+
+    eq N in (N' NS) = (N =?= N') or-else (N in NS) [variant] .
+    eq N in nil = false [variant] .
 endfm
 
 fmod LOC is
-    sorts RsLoc WsLoc RwLoc CsLoc Loc .
-    subsorts RsLoc WsLoc < RwLoc .
-    subsorts RwLoc CsLoc < Loc .
+    pr IBOOL .
+
+    sorts RsLoc NotRevLoc Loc .
+    subsorts RsLoc NotRevLoc < Loc .
 
     op rs : -> RsLoc [ctor] .
-    op ws : -> WsLoc [ctor] .
-    op cs : -> CsLoc [ctor] .
+    op cs : -> Loc [ctor] .
+    op l1 : -> Loc [ctor] .
+    op l2 : -> Loc [ctor] .
+    op l3 : -> Loc [ctor] .
+    op l4 : -> Loc [ctor] .
+    --- op ws : -> Loc [ctor] .
+    op l5 : -> Loc [ctor] .
+    op l6 : -> Loc [ctor] .
+    op l7 : -> NotRevLoc [ctor] .
+    op l8 : -> NotRevLoc [ctor] .
+    op l9 : -> Loc [ctor] .
+    op l10 : -> NotRevLoc [ctor] .
+endfm
+
+fmod QUEUE is
+    pr NAT-FVP .
+    pr IBOOL .
+
+    sorts EmpQueue Queue .
+    subsorts Nat EmpQueue < Queue .
+    
+    op empq : -> EmpQueue [ctor] .
+    op _|_ : Queue Queue -> Queue [ctor assoc id: empq] .
+    op _|_ : EmpQueue EmpQueue -> EmpQueue [ctor ditto] .
+    op enq : Queue Nat -> Queue .
+    op _\in_ : Queue Nat -> IBool .
+    op empty? : Queue -> IBool .
+    op iif_then_else_fi : IBool Queue Queue -> Queue .
+
+    vars Q Q' : Queue .
+    vars E E' : Nat .
+
+    --- enq
+    eq enq(E | Q, E') = E | enq(Q, E') [variant] .
+    eq enq(empq, E') = E' | empq [variant] .
+    --- \in
+    eq E \in (E' | Q) = (E =?= E') or-else (E \in Q) [variant] .
+    --- empty?
+    eq empty?(E | Q) = false [variant] .
+    eq empty?(empq) = true [variant] .
+    --- iif_then_else_fi
+    eq iif true then Q else Q' fi = Q [variant] .
+    eq iif false then Q else Q' fi = Q' [variant] .
+endfm
+
+fmod IARRAY is
+   pr NAT-FVP .
+
+   sorts Elem EmpArray Array .
+   subsorts Elem EmpArray < Array .
+   
+   op empty : -> EmpArray [ctor] . 
+   op [_:_] : Nat Nat -> Elem [ctor] . 
+   op __ : Array Array -> Array [assoc comm id: empty] .
+   op __ : EmpArray EmpArray -> EmpArray [assoc comm id: empty] .
+endfm
+
+fmod REQUEST is
+    pr NAT-FVP .
+    sort Request .
+    op req : Nat Nat -> Request .
+endfm
+
+fmod PRIVILEGE is
+    pr QUEUE .
+    pr IARRAY .
+    sort Privilege .
+    op priv : Queue Array -> Privilege .
+endfm
+
+fmod MESSAGE is
+    pr REQUEST .
+    pr PRIVILEGE .
+    pr NAT-SET .
+    sort Message .
+    --- sending a request to all nodes from one node
+    op msg : Request NatSet -> Message . 
+    --- sending a previlege message to a node from one node
+    op msg : Nat Privilege -> Message .
+endfm
+
+fmod NETWORK is
+    pr MESSAGE .
+    sort Network .
+    subsort Message < Network .
+    op void : -> Network .
+    op __ : Network Network -> Network [ctor assoc comm id: void] .
 endfm
 
 fmod PROC is
-   pr NAT-FVP .
-   pr IBOOL .
-   pr LOC .
+    pr LOC .
+    pr IBOOL .
+    pr QUEUE .
+    pr IARRAY .
 
-   --- Definition of a process
-   sorts RsProc WsProc RwProc CsProc Proc .
-   subsorts RsProc WsProc < RwProc .
-   subsorts RwProc CsProc < Proc .
-   op [_|_|`req:_,priv:_] : Nat RwLoc IBool False -> RwProc [ctor] .
-   op [_|_|`req:_,priv:_] : Nat Loc IBool True -> Proc [ctor] .
+    sorts RsInitProc Proc .
+    subsort RsInitProc < Proc .
+
+    op (_| pc:_, requesting:_, havePriv:_, rn:_, ln:_, queue:_) : 
+        Nat Loc IBool IBool Array Array Queue -> Proc .
+    op (_| pc:_, requesting:_, havePriv:_, rn:_, ln:_, queue:_) : 
+        Nat RsLoc False False EmpArray EmpArray EmpQueue -> RsInitProc .
 endfm
 
 fmod PROC-SET is
     pr PROC .
-    sorts RsProcSet WsProcSet RwProcSet CsProcSet ProcSet .
-    subsorts RsProcSet WsProcSet < RwProcSet .
-    subsorts RwProcSet CsProcSet < ProcSet .
-    subsort RsProc < RsProcSet .
-    subsort WsProc < WsProcSet .
-    subsort CsProc < CsProcSet .
+    sorts EmpProcSet RsInitProcSet ProcSet .
     subsort Proc < ProcSet .
-
-    op void : -> ProcSet [ctor] .
-    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
-    op __ : RwProcSet RwProcSet -> RwProcSet [ctor ditto] .
-endfm
-
-fmod QUEUE {D :: TRIV} is
-   sorts NeQueue{D} Queue{D} .
-   subsort D$Elt < NeQueue{D} < Queue{D} .
-   op empq : -> Queue{D} [ctor] .
-   op _|_ : Queue{D} Queue{D} -> Queue{D} [ctor assoc id: empq] .
-   op _|_ : NeQueue{D} Queue{D} -> NeQueue{D} [ctor ditto] .
-   op _|_ : Queue{D} NeQueue{D} -> NeQueue{D} [ctor ditto] .
-endfm
-
-view Nat from TRIV to NAT-FVP is
-    sort Elt to Nat .
-endv
-
-fmod ARRAY is
-   pr NAT-FVP .
-   --- Array structure needed for:
-   --- The request number of process j that was most recently granted (ln)
-   --- Recording the highest request number received from each process (rn)
-   sorts Array ArrayElem .
-   subsort ArrayElem < Array .
-   op empty : -> Array [ctor] . 
-   op [_:_] : Nat Nat -> ArrayElem [ctor] . 
-   op __ : Array Array -> Array [assoc comm id: empty] .
+    subsort RsInitProc < RsInitProcSet .
+    subsorts EmpProcSet < RsInitProcSet < ProcSet .
+    
+    op emp : -> EmpProcSet [ctor] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: emp] .
+    op __ : EmpProcSet EmpProcSet -> EmpProcSet [ctor ditto] .
+    op __ : RsInitProcSet RsInitProcSet -> RsInitProcSet [ctor ditto] .
 endfm
 
 mod SUZUKI-KASAMI is
-   pr PROC .
-   pr PROC-SET .
-   pr QUEUE{Nat} .
-   pr STRUCTURES .
+    pr PROC-SET .
+    pr NETWORK .
+    
+    sort Config .
 
-   sort Config . 
-   op {_||`queue:_,ln:_,rn:_} : ProcSet Queue{Nat} Array Array -> Config [ctor] .
-   
-   var PS1 : ProcSet .
-   var RWPS1 : RwProcSet .
-   var PROC1 : Proc .
-   vars PID1 PID2 PID3 : Nat .
-   vars A1 A2 A3 A4 A5 A6 A7 A8 : Array .
-   vars N1 N2 N3 : Nat .
-   var LB1 LB2 : Loc .
-   var RwLB1 RwLB2 : RwLoc .
-   vars B1 B2 B3 B4 B5 : IBool .
-   vars Q1 Q2 : Queue{Nat} .
-   vars NeQ1 : NeQueue{Nat} .
+    op {_| nw:_} : ProcSet Network -> Config .
+    op iif_then_else_fi : IBool Config Config -> Config .
+    eq iif true then C1:Config else C2:Config fi = C1:Config [variant] .
+    eq iif false then C1:Config else C2:Config fi = C2:Config [variant] .
 
-   ***(
-   *** l1
-   *** requesting := true;   
-   ***)
-   rl [request] : {[PID1 | rs | req: false, priv: B1] PS1 || queue: Q1, ln: A1, rn: A2 }
-               => {[PID1 | rs | req: true, priv: B1] PS1 || queue: Q1, ln: A1, rn: A2 } [narrowing] .
+    vars RsInitPSET : RsInitProcSet .
+    vars PSET : ProcSet .
+    vars NW : Network .
+    vars I J K N N1 N2 : Nat .
+    vars B1 B2 B1' B2' : IBool .
+    vars A1 A2 A1' A2' : Array .
+    vars Q Q' : Queue .
+    vars L L' : Loc .
+    vars RevL : NotRevLoc .
+    vars NS : NatSet .
 
-   ***(
-   *** l2, l3, l4, cs
-   *** requesting := true; 
-   *** if not(have_privilege) 
-   *** then rn[i] := rn[i] + 1;
-   ***      for all j ∈ {1, …, N} – {i} do
-   ***          send request(i, rn[i]) to node j;
-   ***      endfor
-   ***      l5
-   *** endif  
-   *** Critical Section;
-   ***)
-   rl [check-priv-t] : {[PID1 | rs | req: true, priv: true] PS1 || queue: Q1, ln: A1, rn: ([PID1 : N1] A2) }
-               => {[PID1 | cs | req: true, priv: true] PS1 || queue: Q1, ln: A1, rn: ([PID1 : N1] A2) } [narrowing] .
-   
-   rl [check-priv-f] : {[PID1 | rs | req: true, priv: false] PS1 || queue: Q1, ln: A1, rn: ([PID1 : N1] A2) }
-               => {[PID1 | ws | req: true, priv: false] PS1 || queue: (Q1 | PID1), ln: A1, rn: ([PID1 : N1 + 1] A2) } [narrowing] .
-   
-   ***(
-   *** PROCEDURE 2 (request(j, n) received)
-   *** rn[j] := max(rn[j], n);
-   *** if have_privilege and not(requesting) and (rn[j] = ln[j] + 1)
-   *** then have_privilege := false;
-   ***      send privilege(queue, ln) to node j;
-   *** endif
-   ***)
-   rl [get-request] : {[PID1 | LB1 | req: false, priv: true] 
-                       [PID2 | LB2 | req: true, priv: false]
-                       PS1 || queue: Q1, ln: ([PID2 : N1 + 1] A1), rn: ([PID2 : N1] A2) }
-               => {[PID1 | LB1 | req: false, priv: false] 
-                   [PID2 | LB2 | req: true, priv: true]
-                   PS1 || queue: Q1, ln: ([PID2 : N1 + 1] A1), rn: ([PID2 : N1] A2) } [narrowing] .
+    --- try
+    rl [try] :
+        { (I | pc: rs, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: l1, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW } [narrowing] .
+    
+    --- setReq
+    rl [setReq] :
+        { (I | pc: l1, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: l2, requesting: true, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW } [narrowing] .
 
-   ***(
-   *** l5, cs, l6
-   *** wait until privilege(queue, ln) is received;
-   *** have_privilege := true;
-   *** Critical Section;
-   *** ln[i] := rn[i];
-   ***)       
-   rl [get-priv] : {[PID1 | ws | req: true, priv: true] PS1 || 
-                    queue: (Q1 | PID1), ln: ([PID1 : N1] A1), rn: ([PID1 : N2] A2)}
-               => {[PID1 | cs | req: true, priv: true] PS1 || 
-                   queue: Q1, ln: ([PID1 : N2] A1), rn: ([PID1 : N2] A2)} [narrowing] .
+    --- checkPriv
+    rl [checkPriv1] :
+        { (I | pc: l2, requesting: B1, havePriv: true, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: cs, requesting: B1, havePriv: true, rn: A1, ln: A2, queue: Q) PSET | nw: NW } [narrowing] .
+    
+    rl [checkPriv2] :
+        { (I | pc: l2, requesting: B1, havePriv: false, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: l3, requesting: B1, havePriv: false, rn: A1, ln: A2, queue: Q) PSET | nw: NW } [narrowing] .
 
-   ***(
-   *** l7, l8, l9, l10
-   *** for all j ∈ {1, …, N} – {i} do
-   ***   if (j ∉ queue) ∧ (rn[j] = ln[j] + 1) 
-   ***   then queue := enq(queue, j);
-   ***   endif
-   *** endfor
-   *** if queue ≠ empty 
-   *** then have_privilege := false;
-   ***      send privilege(deq(queue), ln) to node top(queue);
-   *** endif
-   *** requesting := false;
-   ***)    
-   rl [crit-sec-empty] : {[PID1 | cs | req: true, priv: true] PS1 || queue: empq, ln: A1, rn: A2}
-               => {[PID1 | rs | req: false, priv: true] PS1 || queue: empq, ln: A1, rn: A2} [narrowing] .
-            
-   rl [crit-sec-nonempty] : {[PID1 | cs | req: true, priv: true] 
-                             [PID2 | ws | req: true, priv: false] 
-                             PS1 || queue: (PID2 | Q1), ln: A1, rn: A2}
-               => {[PID1 | rs | req: false, priv: false] 
-                   [PID2 | ws | req: true, priv: true] 
-                   PS1 || queue: (PID2 | Q1), ln: A1, rn: A2} [narrowing] .
+    --- incRecNo
+    rl [incRecNo] :
+        { (I | pc: l3, requesting: B1, havePriv: B2, rn: ([I : N1] A1), ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: l4, requesting: true, havePriv: B2, rn: ([I : (N1 + 1)] A1), ln: A2, queue: Q) PSET | nw: NW } [narrowing] .
+
+    --- sendReq
+    rl [sendReq] :
+        { (I | pc: l4, requesting: B1, havePriv: B2, rn: ([I : N1] A1), ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: l5, requesting: B1, havePriv: B2, rn: ([I : N1] A1), ln: A2, queue: Q) PSET | 
+          nw: (msg(req(I, N1), nil) NW) } [narrowing] .
+
+    --- waitPriv
+    rl [sendReq] :
+        { (I | pc: l5, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | 
+          nw: (msg(I, priv(Q', A2')) NW) }
+    =>  { (I | pc: cs, requesting: B1, havePriv: true, rn: A1, ln: A2', queue: Q') PSET | 
+          nw: NW } [narrowing] .
+
+    --- exit
+    rl [exit] :
+        { (I | pc: cs, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: l6, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW } [narrowing] .
+  
+    --- completeReq
+    rl [completeReq] :
+        { (I | pc: l6, requesting: B1, havePriv: B2, rn: ([I : N1] A1), ln: ([I : N2] A2), queue: Q) PSET | nw: NW }
+    =>  { (I | pc: l7, requesting: B1, havePriv: B2, rn: ([I : N1] A1), ln: ([I : N1] A2), queue: Q) PSET | nw: NW } [narrowing] .
+
+    --- updateQueue
+    rl [updateQueue] :
+        { (I | pc: l7, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: l8, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: updateQueue(PSET, I, Q, A1, A2)) PSET | nw: NW } [narrowing] .
+    
+    op updateQueue : ProcSet Nat Queue Array Array -> Queue .
+    eq updateQueue(
+        (J | pc: L', requesting: B1', havePriv: B2', rn: A1', ln: A2', queue: Q') PSET,
+        I, Q, ([J : N1] A1), ([J : N2] A2))
+    =   iif I =?= J then
+            updateQueue(PSET, I, Q, A1, A2)
+        else
+            iif not?(J \in Q) and-then (N1 =?= (N2 + 1)) then
+                updateQueue(PSET, I, enq(Q, J), A1, A2)
+            else
+                updateQueue(PSET, I, Q, A1, A2)
+            fi
+        fi .
+    eq updateQueue(emp, I, Q, A1, A2) = Q [variant] .
+
+    --- checkQueue
+    rl [checkQueue] :
+        { (I | pc: l8, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+    =>  iif empty?(Q) then
+            { (I | pc: l10, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+        else
+            { (I | pc: l9, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+        fi [narrowing] .
+    
+    --- transferPriv
+    rl [transferPriv] :
+        { (I | pc: l9, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: J | Q) PSET | nw: NW }
+    =>  { (I | pc: l10, requesting: B1, havePriv: false, rn: A1, ln: A2, queue: J | Q) PSET | 
+          nw: (msg(J, priv(Q, A2)) NW) } [narrowing] .
+
+    --- resetReq
+    rl [resetReq] :
+        { (I | pc: l10, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW }
+    =>  { (I | pc: rs, requesting: false, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW } [narrowing] .
+    
+    --- receiveReq
+    rl [receiveReq] :
+        { (I | pc: RevL, requesting: B1, havePriv: B2, rn: ([J : N1] A1), ln: ([J : N2] A2), queue: Q) PSET | 
+          nw: (msg(req(J, N), NS) NW) }
+    =>  iif (not?(I =?= J) and-then (not?(I in NS))) then
+            iif ((B2) and-then
+                (not?(B1)) and-then
+                (max(N1, N) =?= (N2 + 1))) then
+                { (I | pc: RevL, requesting: B1, havePriv: false, rn: ([J : max(N1, N)] A1), ln: ([J : N2] A2), queue: Q) PSET | 
+                nw: (msg(J, priv(Q, ([J : N2] A2))) msg(req(J, N), (I NS)) NW) }
+            else
+                { (I | pc: RevL, requesting: B1, havePriv: B2, rn: ([J : max(N1, N)] A1), ln: ([J : N2] A2), queue: Q) PSET | 
+                nw: (msg(req(J, N), (I NS)) NW) }
+            fi
+        else
+            { (I | pc: RevL, requesting: B1, havePriv: B2, rn: ([J : N1] A1), ln: ([J : N2] A2), queue: Q) PSET | 
+              nw: (msg(req(J, N), NS) NW) }
+        fi [narrowing] .
 endm
 
-fvu-narrow [1] in SUZUKI-KASAMI :
-{[PID1 | LB1 | req: B1, priv: true] RWPS1 || queue: Q1, ln: A1, rn: A2 }
-=>*
-{[PID2 | cs | req: B2, priv: B3] PS1 || queue: Q2, ln: A3, rn: A4 } .
+--- Fairness of protocol behavior
+{fold,path} vu-narrow {filter,delay} [1] in SUZUKI-KASAMI : 
+{ (I | pc: rs, requesting: false, havePriv: true, rn: empty, ln: empty, queue: empq) RsInitPSET | nw: void }
+=>* 
+{ (J | pc: cs, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) PSET | nw: NW } .
 
-fvu-narrow [1] in SUZUKI-KASAMI :
-{[PID1 | RwLB1 | req: B1, priv: true] RWPS1 || queue: Q1, ln: A1, rn: A2 }
-=>*
-{[PID2 | cs | req: B2, priv: B3]
- [PID3 | cs | req: B4, priv: B5]
- PS1 || queue: Q2, ln: A3, rn: A4 } .
-
-
+--- Negatively prove the mutex property
+{fold,path} vu-narrow {filter,delay} [1] in SUZUKI-KASAMI : 
+{ (I | pc: rs, requesting: false, havePriv: true, rn: empty, ln: empty, queue: empq) RsInitPSET | nw: void }
+=>* 
+{ (J | pc: cs, requesting: B1, havePriv: B2, rn: A1, ln: A2, queue: Q) 
+  (K | pc: cs, requesting: B1', havePriv: B2', rn: A1', ln: A2', queue: Q') PSET | nw: NW } .

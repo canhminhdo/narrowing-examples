@@ -1,33 +1,26 @@
 fmod IBOOL is
-    sorts True False IBool .
-    subsorts True False < IBool .
+    sorts tt ff IBool .
+    subsorts tt ff < IBool .
 
-    op true : -> True [ctor] . 
-    op false : -> False [ctor] .
+    op tt : -> tt [ctor] . 
+    op ff : -> ff [ctor] .
 endfm
 
-fmod NAT-FVP is
+fmod INAT-FVP is
     pr IBOOL .
-    sorts Zero NzNat Nat . 
-    subsort Zero NzNat < Nat .
+    sorts Zero NzINat INat . 
+    subsort Zero NzINat < INat .
 
     op 0 : -> Zero [ctor] .
-    op 1 : -> NzNat [ctor] .
-    op _+_ : Nat Nat -> Nat [ctor assoc comm id: 0] .
-    op _+_ : NzNat Nat -> NzNat [ctor ditto] .
-
-    vars N N' : Nat .
-    vars NzN : NzNat .
-
-    op _=?=_ : Nat Nat -> IBool .
-    eq N =?= N = true [variant] .
-    eq N + NzN =?= N = false [variant] .
+    op 1 : -> NzINat [ctor] .
+    op _++_ : INat INat -> INat [ctor assoc comm id: 0] .
+    op _++_ : NzINat INat -> NzINat [ctor ditto] .
 endfm
 
 fmod LOC is
     pr IBOOL .
-    sorts RsLoc WsLoc CsLoc NCLoc CLoc Loc .
-    subsorts RsLoc WsLoc < NCLoc < Loc .
+    sorts RsLoc WsLoc CsLoc CLoc Loc .
+    subsorts RsLoc WsLoc < Loc .
     subsorts CsLoc < CLoc < Loc .
 
     op rs : -> RsLoc [ctor] .
@@ -44,24 +37,20 @@ fmod LOC is
     op l11 : -> CsLoc [ctor] .
     op l12 : -> CsLoc [ctor] .
     op cs : -> CsLoc [ctor] .
-
-    vars L L' : Loc .
-    op iif_then_else_fi : IBool Loc Loc -> Loc .
-    eq iif true then L else L' fi = L [variant] .
-    eq iif false then L else L' fi = L' [variant] .
 endfm
 
 fmod PROC is
     pr LOC .
-    pr NAT-FVP .
+    pr INAT-FVP .
     sorts RsProc WsProc CsProc CProc NCProc Proc .
-    subsorts RsProc WsProc < NCProc < Proc .
+    subsorts RsProc < NCProc < Proc .
+    subsorts WsProc < NCProc < Proc .
     subsorts CsProc < CProc < Proc .
 
-    op (_| pc:_, next:_, pred:_, lock:_) : NzNat RsLoc Nat Nat IBool -> RsProc [ctor] .
-    op (_| pc:_, next:_, pred:_, lock:_) : NzNat WsLoc Nat Nat IBool -> WsProc [ctor] .
-    op (_| pc:_, next:_, pred:_, lock:_) : NzNat CsLoc Nat Nat IBool -> CsProc [ctor] .
-    op (_| pc:_, next:_, pred:_, lock:_) : NzNat Loc Nat Nat IBool -> Proc [ctor] .
+    op (_| pc:_, next:_, pred:_, lock:_) : NzINat RsLoc INat INat IBool -> RsProc [ctor] .
+    op (_| pc:_, next:_, pred:_, lock:_) : NzINat WsLoc INat INat IBool -> WsProc [ctor] .
+    op (_| pc:_, next:_, pred:_, lock:_) : NzINat CsLoc INat INat IBool -> CsProc [ctor] .
+    op (_| pc:_, next:_, pred:_, lock:_) : NzINat Loc INat INat IBool -> Proc [ctor] .
 endfm
 
 fmod PROC-SET is
@@ -72,6 +61,8 @@ fmod PROC-SET is
     subsorts CsProcSet < CProcSet < ProcSet .
     subsort RsProc < RsProcSet .
     subsort WsProc < WsProcSet .
+    subsort NCProc < NCProcSet .
+    subsort CProc < CProcSet .
     subsort CsProc < CsProcSet .
     subsort Proc < ProcSet .
 
@@ -79,6 +70,7 @@ fmod PROC-SET is
     op __ : EmpProcSet EmpProcSet -> EmpProcSet [ctor assoc comm id: emp] .
     op __ : RsProcSet RsProcSet -> RsProcSet [ctor ditto] .
     op __ : WsProcSet WsProcSet -> WsProcSet [ctor ditto] .
+    op __ : NCProcSet NCProcSet -> NCProcSet [ctor ditto] .
     op __ : CsProcSet CsProcSet -> CsProcSet [ctor ditto] .
     op __ : ProcSet ProcSet -> ProcSet [ctor ditto] .
 endfm
@@ -87,117 +79,124 @@ mod MCS is
     pr PROC-SET .
     sort Config . 
     
-    op {_|`glock:_} : ProcSet Nat -> Config [ctor] .
+    op {_|`glock:_} : ProcSet INat -> Config [ctor] .
 
     var NCPS : NCProcSet .
     var RsPS : RsProcSet .
-    vars P Q NZ NZ' NZ1 NzN : NzNat .
-    vars N N1 N2 N3 N4 N5 N' N1' N2' N3' N4' N5' : Nat .
+    vars P Q NZ NZ' NZ1 NzN : NzINat .
+    vars N N1 N2 N3 N4 N5 N' N1' N2' N3' N4' N5' : INat .
     vars PSET PSET' : ProcSet .
     vars B  B' : IBool .
     vars L L' : Loc .
-    vars CL CL' : CLoc .
-    vars NCL NCL' : NCLoc .
 
-    --- want
+    eq (NZ | pc: L, ATTRS1) (NZ | pc: L', ATTRS1) = (NZ | pc: L, ATTRS1) [variant] .
+
+    --- want (Remainder Section)
     rl [want] : 
-        { (NZ | pc: rs, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: l1, next: N1, pred: N2, lock: B) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: rs, next: N1, pred: N2, lock: B) PSET | glock: N3}
+    =>  { (NZ | pc: l1, next: N1, pred: N2, lock: B) PSET | glock: N3} [narrowing] .
 
-    --- stnxt
+    --- stnxt (nextp := nop)
     rl [stnxt] : 
-        { (NZ | pc: l1, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: l2, next: 0,  pred: N2, lock: B) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: l1, next: N1, pred: N2, lock: B, ATTRS1) PSET | glock: N3}
+    =>  { (NZ | pc: l2, next: 0, pred: N2, lock: B,  ATTRS1) PSET | glock: N3} [narrowing] .
     
-    --- stprd
+    --- stprd (predep := fetch&store(glock, p))
     rl [stprd] : 
-        { (NZ | pc: l2, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: l3, next: N1, pred: N3, lock: B) PSET | glock: NZ } [narrowing] .
+        { (NZ | pc: l2, next: N1, pred: N2, lock: B) PSET | glock: N3}
+    =>  { (NZ | pc: l3, next: N1, pred: N3, lock: B) PSET | glock: NZ} [narrowing] .
 
-    --- chprd
-    rl [chprd] :  
-        { (NZ | pc: l3, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  if N2 == 0
-        then
-           { (NZ | pc: cs, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-        else
-           { (NZ | pc: l4, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-        fi [narrowing] .
+    --- chprd (if predep = nop then -> cs)
+    rl [chprd1] :  
+        { (NZ | pc: l3, next: N1, pred: 0, lock: B) NCPS | glock: N3}
+    =>  { (NZ | pc: cs, next: N1, pred: 0, lock: B) NCPS | glock: N3} [narrowing] .
 
-    --- stlck
+    --- chprd (else -> l4)
+    rl [chprd2] :  
+        { (NZ | pc: l3, next: NZ1, pred: N2, lock: B) NCPS | glock: N3}
+    =>  { (NZ | pc: l4, next: NZ1, pred: N2, lock: B) NCPS | glock: N3} [narrowing] .
+
+    --- stlck (lockp := true)
     rl [stlck] :  
-        { (NZ | pc: l4, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: l5, next: N1, pred: N2, lock: true) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: l4, next: N1, pred: 0, lock: B) PSET | glock: N3}
+    =>  { (NZ | pc: l5, next: N1, pred: 0, lock: tt) PSET | glock: N3} [narrowing] .
 
-    --- stnpr
+    --- stnpr (nextpredep := p)
     rl [stnpr] :  
-        { (NZ | pc: l5, next: N1, pred: NZ', lock: B)
-          (NZ' | pc: L', next: N1', pred: N2', lock: B') PSET | glock: N3 }
-    =>  { (NZ | pc: l6, next: N1, pred: NZ', lock: B)
-          (NZ' | pc: L', next: NZ, pred: N2', lock: B') PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: l5, next: N1, pred: N2, lock: B) 
+          (NZ' | pc: L', next: N1', pred: N2', lock: B') PSET | glock: N3}
+    =>  { (NZ | pc: l6, next: N1, pred: N2, lock: B) 
+          (NZ' | pc: L', next: NZ, pred: N2', lock: B') PSET | glock: N3} [narrowing] .
 
-    --- chlck
+    --- chlck (repeat while lockp)
     rl [chlck] :  
-        { (NZ | pc: l6, next: N1, pred: N2, lock: false) PSET | glock: N3 }
-    =>  { (NZ | pc: cs, next: N1, pred: N2, lock: false) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: l6, next: N1, pred: N2, lock: ff) NCPS | glock: NZ}
+    =>  { (NZ | pc: cs, next: N1, pred: N2, lock: ff) NCPS | glock: NZ} [narrowing] .
 
-    --- exit
+    --- exit (Critical Section)
     rl [exit] :
-        { (NZ | pc: cs, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: l7, next: N1, pred: N2, lock: B) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: cs, next: N1, pred: N2, lock: B) PSET | glock: N3}
+    =>  { (NZ | pc: l7, next: N1, pred: N2, lock: B) PSET | glock: N3} [narrowing] .
 
-    --- rpnxt
-    rl [rpnxt] :  
-        { (NZ | pc: l7, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    => if N1 == 0
-        then
-           { (NZ | pc: l8, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-        else
-           { (NZ | pc: l11, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-        fi [narrowing] . 
+    --- rpnxt (if nextp = nop then -> l8)
+    rl [rpnxt1] :  
+        { (NZ | pc: l7, next: 0, pred: N2, lock: B) PSET | glock: N3}
+    => { (NZ | pc: l8, next: 0, pred: N2, lock: B) PSET | glock: N3} [narrowing] . 
+
+    --- rpnxt (else -> l9)
+    rl [rpnxt2] :  
+        { (NZ | pc: l7, next: NZ1, pred: N2, lock: B) PSET | glock: N3}
+    => { (NZ | pc: l11, next: NZ1, pred: N2, lock: B) PSET | glock: N3} [narrowing] .
     
-    --- chglk
+    --- chglk (comp&swap(glock, p, nop) then -> l9 else -> l10)
     rl [chglk] :  
-        { (NZ | pc: l8, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  if N3 == NZ
+        { (NZ | pc: l8, next: N1, pred: N2, lock: B) PSET | glock: N3}
+    =>  if NZ == N3
         then
-           { (NZ | pc: l9, next: N1, pred: N2, lock: B) PSET | glock: 0 }
+            { (NZ | pc: l9, next: N1, pred: N2, lock: B) PSET | glock: 0}
         else
-           { (NZ | pc: l10, next: N1, pred: N2, lock: B) PSET | glock: N3 }
+            { (NZ | pc: l10, next: N1, pred: N2, lock: B) PSET | glock: N3}
         fi [narrowing] . 
 
-    --- go2rs1
+    --- go2rs1 (goto rs)
     rl [go2rs1] :  
-        { (NZ | pc: l9, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: rs, next: N1, pred: N2, lock: B) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: l9, next: N1, pred: N2, lock: B) PSET | glock: N3}
+    =>  { (NZ | pc: rs, next: N1, pred: N2, lock: B) PSET | glock: N3} [narrowing] .
 
     --- rpnxt
     rl [rpnxt] :  
-        { (NZ | pc: l10, next: NZ', pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: l11, next: NZ', pred: N2, lock: B) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: l10, next: NZ1, pred: N2, lock: B) PSET | glock: N3}
+    =>  { (NZ | pc: l11, next: NZ1, pred: N2, lock: B) PSET | glock: N3} [narrowing] .
 
     --- stlnx
     rl [stlnx] :  
-        { (NZ | pc: l11, next: NZ', pred: N2, lock: B)
-          (NZ' | pc: L', next: N1', pred: N2', lock: B') PSET | glock: N3 }
-    =>  { (NZ | pc: l12, next: NZ', pred: N2, lock: B)
-          (NZ' | pc: L', next: NZ, pred: N2', lock: false) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: l11, next: N1, pred: N2, lock: B)
+          (NZ' | pc: L', next: N1', pred: N2', lock: B') PSET | glock: N3}
+    =>  { (NZ | pc: l12, next: N1, pred: N2, lock: B)
+          (NZ' | pc: L', next: N1', pred: N2', lock: ff) PSET | glock: N3} [narrowing] .
     
     --- go2rs2
     rl [go2rs2] :  
-        { (NZ | pc: l12, next: N1, pred: N2, lock: B) PSET | glock: N3 }
-    =>  { (NZ | pc: rs, next: N1, pred: N2, lock: B) PSET | glock: N3 } [narrowing] .
+        { (NZ | pc: l12, next: N1, pred: N2, lock: B) PSET | glock: N3}
+    =>  { (NZ | pc: rs, next: N1, pred: N2, lock: B) PSET | glock: N3} [narrowing] .
 endm
 
 --- Fairness of protocol behavior
 {fold,path} vu-narrow {filter,delay} [1] in MCS : 
-{ NCPS | glock: 0 }
+{ NCPS | glock: 0}
 =>* 
 {(NZ | pc: cs, next: N1, pred: N2, lock: B) PSET | glock: N3} .
 
+eof
+
 --- Negatively prove the mutex property
 {fold,path} vu-narrow {filter,delay} [1] in MCS : 
-{ NCPS | glock: N4 }
+{ NCPS | glock: N4}
 =>*
 { (NZ | pc: cs, next: N1, pred: N2, lock: B) 
-  (NZ' | pc: cs, next: N1', pred: N1', lock: B') PSET | glock: N3} .
+  (NZ ++ NZ' | pc: cs, next: N1', pred: N2', lock: B') PSET | glock: N3} .
+
+{fold} vu-narrow {filter,delay} [100] in MCS : 
+{ NCPS | glock: N1}
+=>* 
+C:Config .
