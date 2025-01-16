@@ -72,12 +72,13 @@ mod MCS is
     op {_|`glock:_} : ProcSet INat -> Config [ctor] .
 
     var NCPS : NCProcSet .
-    vars P Q PID PID' NZ1 NZ2 : NzINat .
-    vars N N1 N2 N3 P1 P2 P3 G1 G2 : INat .
-    vars B1 B2 : IBool .
+    vars P Q PID PID' PID'' NZ1 NZ2 : NzINat .
+    vars N N1 N2 N3 N4 P1 P2 P3 P4 G1 G2 G3 G4 : INat .
+    vars B1 B2 B3 B4 : IBool .
     vars PSET PSET' : ProcSet .
     vars L L' : Loc .
-    vars CP CP' : CProc .
+    vars CP1 CP2 : CProc .
+    vars NCP1 NCP2 NCP3 NCP4 NCP5 NCP6 NCP7 NCP8 NCP9 NCP10 NCP11 NCP12 NCP13 NCP14 NCP15 : NCProc .
 
     --- want (Remainder Section)
     rl [want] : 
@@ -169,6 +170,39 @@ mod MCS is
     =>  { (PID | pc: rs, next: N1, pred: P1, lock: B1) PSET | glock: G1} [narrowing] .
 endm
 
+--- Fairness of protocol behavior
+{fold,path} vu-narrow {filter,delay} [1] in MCS : 
+{ NCPS | glock: 0}
+=>* 
+{CP1 PSET | glock: G1} .
+
+--- Negatively prove the mutex property for a fixed number of processes
+{fold} vu-narrow {filter,delay} [1] in MCS : 
+    { NCP1 NCP2 NCP3 | glock: G1} 
+    =>*
+    { CP1 CP2 PSET | glock: G2} .
+    
+{fold} vu-narrow {filter,delay} [1] in MCS : 
+    { NCP1 NCP2 NCP3 NCP4 NCP5 | glock: G1} 
+    =>*
+    { CP1 CP2 PSET | glock: G2} .
+    
+{fold} vu-narrow {filter,delay} [1] in MCS : 
+    { NCP1 NCP2 NCP3 NCP4 NCP5 NCP6 | glock: G1} 
+    =>*
+    { CP1 CP2 PSET | glock: G2} .
+
+{fold} vu-narrow {filter,delay} [1] in MCS : 
+    { NCP1 NCP2 NCP3 NCP4 NCP5 NCP6 NCP7 | glock: G1} 
+    =>*
+    { CP1 CP2 PSET | glock: G2} .
+
+--- Negatively prove the mutex property
+{fold,path} vu-narrow {filter,delay} [1] in MCS : 
+{ NCPS | glock: G1}
+=>*
+{ CP1 CP2 PSET | glock: G2} .
+
 eof
 --- Testing
 {fold} vu-narrow {filter,delay} [100] in MCS : 
@@ -176,14 +210,8 @@ eof
 =>* 
 C:Config .
 
---- Fairness of protocol behavior
-{fold,path} vu-narrow {filter,delay} [1] in MCS : 
-{ NCPS | glock: 0}
-=>* 
-{CP PSET | glock: G1} .
-
 --- Negatively prove the mutex property
 {fold,path} vu-narrow {filter,delay} [1] in MCS : 
 { NCPS | glock: G1}
 =>*
-{ CP CP' PSET | glock: G2} .
+{ CP1 CP2 PSET | glock: G2} .
