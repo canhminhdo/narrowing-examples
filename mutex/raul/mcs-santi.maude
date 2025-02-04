@@ -1,0 +1,171 @@
+fmod IBOOL is
+    sorts ITrue IFalse IBool .
+    subsorts ITrue IFalse < IBool .
+
+    op tt : -> ITrue [ctor] . 
+    op ff : -> IFalse [ctor] .
+endfm
+
+fmod LOC is
+    sorts WLoc CLoc Loc .
+    subsorts RLoc WLoc CLoc < Loc .
+
+    op rs : -> RLoc [ctor] .
+    op l1 : -> RLoc [ctor] .
+    op l2 : -> RLoc [ctor] .
+    op l3 : -> WLoc [ctor] .
+    op l4 : -> WLoc [ctor] .
+    op l5 : -> WLoc [ctor] .
+    op l6 : -> WLoc [ctor] .
+    op l7 : -> CLoc [ctor] .
+    op l8 : -> CLoc [ctor] .
+    op l9 : -> CLoc [ctor] .
+    op l10 : -> CLoc [ctor] .
+    op l11 : -> CLoc [ctor] .
+    op l12 : -> CLoc [ctor] .
+    op cs : -> CLoc [ctor] .
+endfm
+
+fmod PROC is
+    pr LOC .
+    pr IBOOL .
+    sorts Proc CProc WProc .
+    subsorts RProc WProc CProc < Proc .
+    
+    op (pc:_, lock:_) : Loc IBool -> Proc [ctor] .
+    op (pc:_, lock:_) : RLoc IBool -> RProc [ctor] .
+    op (pc:_, lock:_) : WLoc IBool -> WProc [ctor] .
+    op (pc:_, lock:_) : CLoc IBool -> CProc [ctor] .
+endfm
+
+fmod PROCLIST is
+    pr PROC .
+
+    sorts Empty ProcList NeProcList RProcList NeRProcList WProcList NeWProcList CProcList NeCProcList .
+    subsorts Empty < RProcList WProcList CProcList < ProcList .
+    subsorts Proc < NeProcList < ProcList .
+    subsorts RProc < NeRProcList < RProcList < ProcList .
+    subsorts WProc < NeWProcList < WProcList < ProcList .
+    subsorts CProc < NeCProcList < CProcList < ProcList .
+    subsort NeRProcList NeWProcList NeCProcList < NeProcList .
+    
+    op void : -> Empty [ctor] .
+    op __ : Empty Empty -> Empty [ctor assoc id: void] .
+    op __ : ProcList ProcList -> ProcList [ctor assoc id: void] .
+    op __ : NeProcList NeProcList -> NeProcList [ctor assoc id: void] .
+    op __ : RProcList RProcList -> RProcList [ctor assoc id: void] .
+    op __ : NeRProcList NeRProcList -> NeRProcList [ctor assoc id: void] .
+    op __ : WProcList WProcList -> WProcList [ctor assoc id: void] .
+    op __ : NeWProcList NeWProcList -> NeWProcList [ctor assoc id: void] .
+    op __ : CProcList CProcList -> CProcList [ctor assoc id: void] .
+    op __ : NeCProcList NeCProcList -> NeCProcList [ctor assoc id: void] .
+endfm
+
+mod MCS is
+    pr PROCLIST .
+
+    sort Config . 
+    op {_|_|_} : ProcList ProcList ProcList -> Config [ctor] .
+    
+    vars PL1 PL2 PL3 PL4 PL5 PL6 : ProcList .
+    vars P1 P2 P3 P4 P5 P6 : Proc .
+    vars NePL1 NePL2 NePL3 NePL4 NePL5 NePL6 : ProcList .
+    vars CPL1 CPL2 CPL3 : CProcList .
+    vars WPL1 WPL2 WPL3 : WProcList .
+    vars RPL1 RPL2 RPL3 : RProcList .
+    vars L L1 L2 : Loc .
+    vars B B1 B2 : IBool .
+
+    rl [rs] :
+       (pc: rs, lock: B)
+    => (pc: l1, lock: B) [narrowing] .
+
+    rl [want] : --- nextp := nop;
+       (pc: l1, lock: B)
+    => (pc: l2, lock: B) [narrowing] .
+
+    rl [stprd] : --- predep := fetch&store(glock,p);
+       { PL1     | PL2               | PL4 (pc: l2, lock: B) PL5 }
+    => { PL1 PL2 | (pc: l3, lock: B) | PL4                   PL5 } [narrowing] .
+
+    rl [chprdElse] : --- if predep  ̸= nop -> Then l4 -> Else cs
+       { NePL1 | (pc: l3, lock: B) | PL4 } 
+    => { NePL1 | (pc: l4, lock: B) | PL4 } [narrowing] .
+       
+    rl [chprdElse] : --- if predep  ̸= nop -> Then l4 -> Else cs
+       { void              | (pc: l3, lock: B) | PL4 } 
+    => { (pc: cs, lock: B) | void              | PL4 }  [narrowing] .
+
+    rl [stlck] : --- lockp := true
+       (pc: l4, lock: B)
+    => (pc: l5, lock: tt) [narrowing] .
+
+    rl [stnpr] : --- nextpredep := p;
+       (pc: l5, lock: B)
+    => (pc: l6, lock: B) [narrowing] .
+
+    rl [chlck] : --- repeat while lockp -> Then l6 -> Else cs
+       (pc: l6, lock: tt)
+    => (pc: l6, lock: tt) [narrowing] .
+
+    rl [chlck] : --- repeat while lockp -> Then l6 -> Else cs
+       (pc: l6, lock: ff)
+    => (pc: cs, lock: ff) [narrowing] .
+
+    rl [exit] : --- critical section
+       (pc: cs, lock: B)
+    => (pc: l7, lock: B) [narrowing] .
+
+    rl [chknxtThen] : --- if nextp = nop -> Then l8 -> Else l11
+       { PL1 (pc: l7, lock: B) | PL2 | PL4 }
+    => { PL1 (pc: l8, lock: B) | PL2 | PL4 } [narrowing] .
+
+    rl [chlknxtElse] : --- if nextp = nop -> Then l8 -> Else l11
+       { PL1 (pc:  l7, lock: B) NePL2 | PL2 | PL4 }
+    => { PL1 (pc: l11, lock: B) NePL2 | PL2 | PL4 } [narrowing] .
+
+    rl [chglkThen] : --- comp&swap(glock, p, nop) then -> l9 else -> l10
+       { PL1                   | (pc: l8, lock: B) | PL4 }
+    => { PL1 (pc: l9, lock: B) | void              | PL4 } [narrowing] .
+
+    rl [chglkElse] : --- comp&swap(glock, p, nop) then -> l9 else -> l10
+       { PL1 (pc:  l8, lock: B) PL2 | PL2 | PL4 }
+    => { PL1 (pc: l10, lock: B) PL2 | PL2 | PL4 } [narrowing] .
+
+    rl [go2rs1] : --- goto rs
+       (pc: l9, lock: B)
+    => (pc: rs, lock: B) [narrowing] .
+
+    rl [rpnxThen] : --- repeat while nextp = nop -> Then l10 -> Else l11
+       { PL1 (pc: l10, lock: B) | PL2 | PL4 }
+    => { PL1 (pc: l10, lock: B) | PL2 | PL4 } [narrowing] .
+
+    rl [rpnxElse] : --- repeat while nextp = nop -> Then l10 -> Else l11
+       { PL1 (pc: l10, lock: B) NePL2 | PL3 | PL4 }
+    => { PL1 (pc: l11, lock: B) NePL2 | PL3 | PL4 } [narrowing] .
+
+    rl [stlnx] : --- locknextp := false
+       { PL1 (pc: l11, lock: B1) (pc: L, lock: B2) PL2 | PL3 | PL4 }
+    => { PL1 (pc: l12, lock: B1) (pc: L, lock: ff) PL2 | PL3 | PL4 } [narrowing] .
+
+    rl [go2rs2] : --- goto rs
+       (pc: l12, lock: B)
+    => (pc: rs, lock: B) [narrowing] .
+
+endm
+
+search { void | void | (pc: rs, lock: ff) (pc: rs, lock: ff) } 
+=>* {PL1 (pc: cs, lock: B1) | PL2 | PL4 } . 
+
+search { void | void | (pc: rs, lock: ff) (pc: rs, lock: ff) } 
+=>* {PL1 (pc: cs, lock: B1) (pc: cs, lock: B2) | PL2 | PL4 } . 
+
+{fold,path} vu-narrow { PL1 | PL2 | PL3 } 
+=>* {PL4 (pc: cs, lock: B1) | PL5 | PL6 } . 
+
+{fold,path} vu-narrow [1] { void | void | RPL1 } 
+=>* {PL1 (pc: cs, lock: B1) | PL2 | PL3 } .
+
+{fold,path} vu-narrow { WPL1 | WPL2 | RPL1 } 
+=>* {PL1 (pc: cs, lock: B1) (pc: cs, lock: B2) | PL2 | PL3 } .
+eof

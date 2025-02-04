@@ -81,11 +81,11 @@ mod ANDERSON is
     pr IARRAY .
     sort Config . 
 
-    op {_|`next:_|`array:_} : ProcSet Nat Array -> Config [ctor] .
+    op {_|`next:_|`array:_|`nproc:_} : ProcSet Nat Array Nat -> Config [ctor] .
   
     vars RWPSET RWPSET' : RWProcSet .
     var RSPSET : RsProcSet .
-    vars N1 N2 N3 N4 N5 N6 : Nat .
+    vars N1 N2 N3 N4 N5 N6 N7 NPROC : Nat .
     vars NZ1 NZ2 : NzNat .
     vars PSET PSET' : ProcSet . 
     vars B1 B2 : IBool .
@@ -93,34 +93,40 @@ mod ANDERSON is
     vars FA FA' : FArray .
     vars TA TA' : TArray .
     var TE : TElem .
-    vars P P' : Pid .
+    vars P P' P'' P''' P'''' : Pid .
     var PROC : Proc .
     vars L L' : Loc .
 
     eq [no-redundance-next] : (pc[P]: L, N1) (pc[P']: L', N1) = (pc[P]: L, N1) .
 
-    --- we suppose that there is an infinite array and at least one element is false
-    rl [want] : 
-        {(pc[P]: rs, N1) PSET | next: N2 | array: A }
-    =>  {(pc[P]: ws, N2) PSET | next: N2 + 1 | array: A } [narrowing] .
+    rl [want1] :
+        {(pc[P]: rs, N1) PSET | next: N2 | array: A | nproc: N2 + 1 }
+    =>  {(pc[P]: ws, N2) PSET | next: 0 | array: A | nproc: N2 + 1 } [narrowing] .
+
+    rl [want2] :
+        {(pc[P]: rs, N1) PSET | next: N2 | array: A | nproc: N2 + NZ1 + NZ2 }
+    =>  {(pc[P]: ws, N2) PSET | next: N2 + 1 | array: A | nproc: N2 + NZ1 + NZ2 } [narrowing] .
 
     rl [try] : 
-        {(pc[P]: ws, N1) PSET | next: N1 + NZ1 | array: TA [N1 : true] FA }
-    =>  {(pc[P]: cs, N1) PSET | next: N1 + NZ1 | array: TA [N1 : true] FA } [narrowing] .
+        {(pc[P]: ws, N1) PSET | next: N2 | array: FA [N1 : true] FA' | nproc: NPROC }
+    =>  {(pc[P]: cs, N1) PSET | next: N2 | array: FA [N1 : true] FA' | nproc: NPROC } [narrowing] .
 
-    rl [exit] : 
-        {(pc[P]: cs, N1) PSET | next: N1 + NZ1 | array: TA [N1 : true] [N1 + 1 : false] FA }
-    =>  {(pc[P]: rs, N1) PSET | next: N1 + NZ1 | array: TA [N1 : true] [N1 + 1 : true] FA } [narrowing] .
+    rl [exit1] : 
+        {(pc[P]: cs, N1) PSET | next: N2 | array: [0 : false] FA [N1 : true] | nproc: N1 }
+    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: [0 : true] FA [N1 : false] | nproc: N1 } [narrowing] .
+    
+    rl [exit2] : 
+        {(pc[P]: cs, N1) PSET | next: N2 | array: FA [N1 : true] [N1 + 1 : false] FA' | nproc: N1 + NZ1 }
+    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: FA [N1 : false] [N1 + 1 : true] FA' | nproc: N1 + NZ1 } [narrowing] .
+
 endm
 
 --- Proving cs is reachable
 fvu-narrow [1] in ANDERSON : 
-    {RWPSET | next: N1 | array: A} 
-=>* {(pc[P]: cs, N2) PSET' | next: N3 | array: A'} .
+    {(pc[P]: rs, N1) (pc[P']: rs, N2) (pc[P'']: rs, N3) | next: N4 | array: A | nproc: NPROC} 
+=>* {(pc[P''']: cs, N5) PSET | next: N6 | array: A' | nproc: NPROC} .
 
 --- Negatively prove the mutex property
 {fold,path} vu-narrow [1] in ANDERSON : 
-    {RWPSET | next: N1 | array: A} 
-=>* {(pc[P]: cs, N2) (pc[P']: cs, N3) PSET | next: N4 | array: A'} .
-
-
+    {RWPSET | next: N1 | array: A | nproc: NPROC}
+=>* {(pc[P]: cs, N2) (pc[P']: cs, N3) PSET | next: N4 | array: A' | nproc: NPROC} .

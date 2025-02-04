@@ -29,12 +29,12 @@ fmod LOC is
     op l4 : -> NCLoc [ctor] .
     op l5 : -> NCLoc [ctor] .
     op l6 : -> NCLoc [ctor] .
-    op l7 : -> CLoc [ctor] .
-    op l8 : -> CLoc [ctor] .
-    op l9 : -> CLoc [ctor] .
-    op l10 : -> CLoc [ctor] .
-    op l11 : -> CLoc [ctor] .
-    op l12 : -> CLoc [ctor] .
+    op l7 : -> NCLoc [ctor] .
+    op l8 : -> NCLoc [ctor] .
+    op l9 : -> NCLoc [ctor] .
+    op l10 : -> NCLoc [ctor] .
+    op l11 : -> NCLoc [ctor] .
+    op l12 : -> NCLoc [ctor] .
     op cs : -> CLoc [ctor] .
 endfm
 
@@ -122,8 +122,8 @@ mod MCS is
 
     --- chlck (repeat while lockp)
     rl [chlck] :  
-        { (PID | pc: l6, next: N1, pred: P1, lock: FF1) PSET | glock: G1}
-    =>  { (PID | pc: cs, next: N1, pred: P1, lock: FF1) PSET | glock: G1} [narrowing] .
+        { (PID | pc: l6, next: N1, pred: P1, lock: FF1) NCPS | glock: G1}
+    =>  { (PID | pc: cs, next: N1, pred: P1, lock: FF1) NCPS | glock: G1} [narrowing] .
 
     --- exit (Critical Section)
     rl [exit] :
@@ -172,46 +172,12 @@ mod MCS is
         { (PID | pc: l12, next: N1, pred: P1, lock: B1) PSET | glock: G1}
     =>  { (PID | pc: rs, next: N1, pred: P1, lock: B1) PSET | glock: G1} [narrowing] .
 endm
-eof
+
 --- Fairness of protocol behavior
 {fold,path} vu-narrow {filter,delay} [1] in MCS : 
 { NCPS | glock: Z1}
 =>* 
 {CP1 PSET | glock: G1} .
-
---- Negatively prove the mutex property for a fixed number of processes
-{fold} vu-narrow {filter,delay} [1] in MCS : 
-    { NCP1 NCP2 NCP3 | glock: G1} 
-    =>*
-    { CP1 CP2 PSET | glock: G2} .
-    
-{fold} vu-narrow {filter,delay} [1] in MCS : 
-    { NCP1 NCP2 NCP3 NCP4 NCP5 | glock: G1} 
-    =>*
-    { CP1 CP2 PSET | glock: G2} .
-    
-{fold} vu-narrow {filter,delay} [1] in MCS : 
-    { NCP1 NCP2 NCP3 NCP4 NCP5 NCP6 | glock: G1} 
-    =>*
-    { CP1 CP2 PSET | glock: G2} .
-
-{fold} vu-narrow {filter,delay} [1] in MCS : 
-    { NCP1 NCP2 NCP3 NCP4 NCP5 NCP6 NCP7 | glock: G1} 
-    =>*
-    { CP1 CP2 PSET | glock: G2} .
-
---- Negatively prove the mutex property
-{fold,path} vu-narrow {filter,delay} [1] in MCS : 
-{ NCPS | glock: G1}
-=>*
-{ CP1 CP2 PSET | glock: G2} .
-
-eof
---- Testing
-{fold} vu-narrow {filter,delay} [100] in MCS : 
-{ NCPS | glock: G1}
-=>* 
-C:Config .
 
 --- Negatively prove the mutex property
 {fold,path} vu-narrow {filter,delay} [1] in MCS : 
