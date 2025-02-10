@@ -1,0 +1,161 @@
+fmod NAT-FVP is
+  sorts Nat NzNat . 
+  subsort NzNat < Nat .
+
+  op 0 : -> Nat [ctor] .
+  op 1 : -> NzNat [ctor] .
+  op _+_ : NzNat Nat -> NzNat [ctor assoc comm id: 0] .
+  op _+_ : Nat Nat -> Nat [ctor assoc comm id: 0] .
+endfm
+
+fmod LOC is
+  sorts RsLoc WsLoc RWLoc CsLoc Loc .
+  subsorts RsLoc WsLoc < RWLoc .
+  subsorts RWLoc CsLoc < Loc .
+
+  op rs : -> RsLoc [ctor] .
+  op ws : -> WsLoc [ctor] .
+  op cs : -> CsLoc [ctor] .
+
+  sorts Attribute AttributeSet .
+  subsort Attribute < AttributeSet .
+  op none : -> AttributeSet  [ctor] .
+  op __ : AttributeSet AttributeSet -> AttributeSet [ctor assoc comm id: none] .
+  
+  op nextp:_ : Nat -> Attribute [ctor prec 20 gather (&)] .
+  op predep:_ : Nat -> Attribute [ctor prec 20 gather (&)] .
+  op lockp:_ : Bool -> Attribute [ctor prec 20 gather (&)] .
+  
+  sorts RsProc WsProc RWProc CsProc Proc .
+  subsorts RsProc WsProc < RWProc .
+  subsorts RWProc CsProc < Proc .
+  
+  op [_|_|_] : NzNat Label AttributeSet -> Proc [ctor] .
+  op [_|_|_] : NzNat RsLoc AttributeSet -> RsProc [ctor] .  
+  op [_|_|_] : NzNat WsLoc AttributeSet -> WsProc [ctor] . 
+  op [_|_|_] : NzNat CsLoc AttributeSet -> CsProc [ctor] . 
+endfm
+
+fmod PROC-SET is
+    pr PROC .
+    sorts RsProcSet WsProcSet RWProcSet CsProcSet ProcSet .
+    subsorts RsProcSet WsProcSet < RWProcSet .
+    subsorts RWProcSet CsProcSet < ProcSet .
+    subsort RsProc < RsProcSet .
+    subsort WsProc < WsProcSet .
+    subsort CsProc < CsProcSet .
+    subsort Proc < ProcSet .
+
+    op void : -> ProcSet [ctor] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
+    op __ : RWProcSet RWProcSet -> RWProcSet [ctor ditto] .
+endfm
+
+fmod PID is
+  sort Pid .
+endfm
+
+***(
+*** rs : “Remainder Section”
+*** l1 : nextp := nop;
+*** l2 : predep := fetch&store(glock, p);
+*** l3 : if predep ̸= nop {
+*** l4 : lockp := true;
+*** l5 : nextpredep := p;
+*** l6 : repeat while lockp; }
+*** cs : “Critical Section”
+*** l7 : if nextp = nop {
+*** l8 : if comp&swap(glock, p, nop)
+*** l9 : goto rs;
+*** l10 : repeat while nextp = nop; }
+*** l11 : locknextp := false;
+*** l12 : goto rs;
+***)
+mod MCS is
+  pr NAT-FVP .
+  pr BOOL .
+  pr PROC-SET .
+  pr PID .
+
+  sort Config . 
+  op {_|`glock:_} : ProcSet Nat -> Config [ctor] .
+  
+  vars N1 N2 N3 N4 : Nat . 
+  vars NZ1 NZ2 : NzNat .
+  var PSET : ProcSet .
+  var RWPSET : RWProcSet .
+  var L1 : Loc .
+  vars ATTRS1 ATTRS2 : AttributeSet .
+  
+  eq ATTRS1 ATTRS1 = ATTRS1 [variant] .
+
+  ***(
+  *** nextp := nop;
+  *** predep := fetch&store(glock, p);
+  *** if glock = nop -> go to cs
+  ***)
+  rl [want-1] : {[NZ1 | rs | ATTRS1] RWPSET | glock: 0 }
+        => {[NZ1 | cs | nextp: 0 predep: 0 lockp: false] RWPSET | glock: NZ1 } [narrowing] .
+
+  rl [want-2] : {[NZ1 | rs | ATTRS1] PSET | glock: NZ2 }
+        => {[NZ1 | ws | nextp: 0 predep: NZ2 lockp: false] PSET | glock: NZ1 } [narrowing] .
+  
+  ***(
+  *** if predep =/= nop 
+  ***      lockp := true;
+  ***      nextpredep := p;
+  ***      repeat while lockp; 
+  ***)
+  rl [wait] : {[NZ1 | ws | ATTRS1 predep: NZ2 lockp: false] 
+               [NZ2 | L1 | ATTRS2] 
+                 PSET | glock: N4 }
+        => {[NZ1 | ws | ATTRS1 predep: NZ2 lockp: true] 
+            [NZ2 | L1 | ATTRS2] 
+            PSET | glock: N4 } [narrowing] .
+
+  ***(
+  *** lockp == false
+  *** Critical Section
+  ***)
+  rl [try] : {[NZ1 | ws | ATTRS1 lockp: false] 
+              RWPSET | glock: N2 }
+        => {[NZ1 | cs | ATTRS1 lockp: false] 
+            RWPSET | glock: N2 } [narrowing] .
+
+  ***(
+  *** if nextp = nop {
+  ***   if comp&swap(glock, p, nop)
+  ***       goto rs; }
+  ***)
+  rl [exit-1] : {[NZ1 | cs | nextp: 0 ATTRS1] RWPSET | glock: NZ1 } 
+        => {[NZ1 | rs | nextp: 0 ATTRS1] RWPSET | glock: 0 } [narrowing] .
+
+  *** Implicit logic: repeat while nextp = nop; }
+
+  ***(
+  *** if nextp =/= nop {
+  ***   locknextp := false;
+  ***   l12 : goto rs;
+  ***)
+  rl [exit-2] : {[NZ1 | cs | nextp: NZ2 predep: N1 lockp: false] 
+                 [NZ2 | ws | nextp: N2 predep: NZ1 lockp: true]
+                 RWPSET | glock: N3 }
+        => {[NZ1 | rs | nextp: NZ2 predep: N1 lockp: false] 
+            [NZ2 | ws | nextp: N2 predep: NZ1 lockp: false]
+            RWPSET | glock: N3 } [narrowing] .
+endm
+
+--- Proving that states reach critical section
+fvu-narrow in MCS : 
+{[NZ1 | ws | ATTRS1] RWPSET | glock: N1}
+=>* 
+{[NZ1 | cs | ATTRS2] PSET | glock: N4} .
+
+
+--- Proving mutex negatively
+{path,fold} vu-narrow {filter,delay} [1] in MCS : 
+{RWPSET | glock: N1} 
+=>* 
+{[NZ1 | cs | ATTRS1] 
+ [NZ2 | cs | ATTRS2]
+ PSET | glock: N2} .

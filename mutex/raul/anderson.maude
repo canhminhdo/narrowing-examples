@@ -123,7 +123,7 @@ endm
 
 --- Proving cs is reachable
 fvu-narrow [1] in ANDERSON : 
-    {(pc[P]: rs, N1) (pc[P']: rs, N2) (pc[P'']: rs, N3) | next: N4 | array: A | nproc: NPROC} 
+    {RWPSET | next: N4 | array: A | nproc: NPROC} 
 =>* {(pc[P''']: cs, N5) PSET | next: N6 | array: A' | nproc: NPROC} .
 
 --- Negatively prove the mutex property

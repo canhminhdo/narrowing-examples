@@ -171,13 +171,13 @@ mod MCS is
 endm
 
 --- Fairness of protocol behavior
-{fold,path} vu-narrow {filter,delay} in MCS : 
+{fold,path} vu-narrow {filter,delay} [1] in MCS : 
 { NCPS | glock: G1}
 =>* 
 {CP1 PSET | glock: G2} .
 
 --- Negatively prove the mutex property
-{fold,path} vu-narrow {filter,delay} in MCS : 
+{fold,path} vu-narrow {filter,delay} [1] in MCS : 
 { NCPS | glock: G1}
 =>*
 { CP1 CP2 PSET | glock: G2} .

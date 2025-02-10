@@ -4,3 +4,4 @@ lib
 MUnit
 logs
 .vscode
+*.Identifier

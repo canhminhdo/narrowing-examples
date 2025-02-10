@@ -1,0 +1,86 @@
+fmod NAT-FVP is
+    sorts Nat NzNat . 
+    subsort NzNat < Nat .
+
+    op 0 : -> Nat [ctor] .
+    op 1 : -> NzNat [ctor] .
+    op _+_ : NzNat Nat -> NzNat [ctor assoc comm id: 0] .
+    op _+_ : Nat Nat -> Nat [ctor assoc comm id: 0] .
+endfm
+
+mod ANDERSON is
+  pr NAT-FVP .
+
+  sorts Pid .
+  
+  sorts Label RWLabel .
+  subsort RWLabel < Label .
+
+  ops rs ws : -> RWLabel [ctor] .
+  op cs : -> Label [ctor] .
+
+  sorts ZRWProc RWProc Proc .
+  subsort ZRWProc < RWProc < Proc .
+  op pc[_]:_,_ : Pid RWLabel Nat -> RWProc [ctor] .
+  op pc[_]:_,_ : Pid Label Nat -> Proc [ctor] .
+ 
+  sorts ProcSet RWProcSet .
+  subsort RWProcSet < ProcSet .
+  subsort Proc < ProcSet .
+  subsort RWProc < RWProcSet .
+  op void : -> RWProcSet [ctor] .
+  op __ : RWProcSet RWProcSet -> RWProcSet [assoc comm id: void] .
+  op __ : ProcSet ProcSet -> ProcSet [assoc comm id: void] .
+  
+  sorts MyBool True False .
+  subsorts True False < MyBool .
+  op true : -> True [ctor] . 
+  op false : -> False [ctor] . 
+
+  sorts FArray Array FArrayElem ArrayElem .
+  subsort ArrayElem < Array .
+  subsort FArrayElem < FArray .
+  subsort FArray < Array .
+  op empty : -> Array [ctor] . 
+  op [_:_] : Nat True -> ArrayElem [ctor] . 
+  op [_:_] : Nat False -> FArrayElem [ctor] . 
+  op __ : FArray FArray -> FArray [assoc comm id: empty ctor] .
+  op __ : FArray Array -> Array [ditto] .
+  
+  sort Config . 
+  op {_|`next:_|`array:_} : ProcSet Nat Array -> Config [ctor] .
+
+  var PSET PSET' : ProcSet . 
+  var RWPSET RWPSET' : RWProcSet .
+  vars A A' : Array .
+  vars P P' : Pid .
+  vars PROC : Proc .
+  vars L L' : Label .
+  vars N1 N2 N3 N4 N5 : Nat .
+  var B1 B2 : MyBool .
+
+  eq [no-redundance-next] : (pc[P]: L, N1) (pc[P']: L', N1)  = (pc[P]: L, N1) .
+  eq [no-redundance-proc] : (pc[P]: L, N1) (pc[P]: L', N2)  = (pc[P]: L, N1) .
+  eq [no-redundance-array] : [N1 : B1] [N1 : B2]  = [N1 : B1] .
+
+  rl [want] : {(pc[P]: rs, N1) PSET | next: N2 | array: A }
+        => {(pc[P]: ws, N2) PSET | next: N2 + 1 | array: A } [narrowing] .
+
+  rl [try] : {(pc[P]: ws, N1) PSET | next: N2 | array: A [N1 : true] }
+        => {(pc[P]: cs, N1) PSET | next: N2 | array: A [N1 : true] } [narrowing] .
+
+  rl [exit] : {(pc[P]: cs, N1) PSET | next: N2 | array: A [N1 : true] [N1 + 1 : false] }
+        => {(pc[P]: rs, N1) PSET | next: N2 | array: A [N1 : true] [N1 + 1 : true] } [narrowing] .
+endm
+
+--- Proving cs is reachable
+fvu-narrow [1] in ANDERSON : 
+{RWPSET | next: N1 | array: A} 
+=>* 
+{(pc[P]: cs, N2) PSET' | next: N4 | array: A'} .
+
+--- Negatively prove the mutex property
+fvu-narrow [1] in ANDERSON : 
+{RWPSET | next: N1 | array: A} 
+=>* 
+{(pc[P]: cs, N3) (pc[P']: cs, N4) PSET | next: N5 | array: A'} .

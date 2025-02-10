@@ -1,0 +1,463 @@
+*** proof of mutex ***
+--- base case
+fmod MUTEX-INIT is
+  pr PROPERTIES .
+  ops i j : -> Pid .
+endfm
+---red in MUTEX-INIT : mutex(init,i,j) .
+
+--- induction case want
+fmod MUTEX-WANT-1-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = rs .
+  eq i = k .
+endfm
+---red in MUTEX-WANT-1-1 : mutex(s,i,j) implies mutex(want(s,k),i,j) .
+
+fmod MUTEX-WANT-1-2-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = rs .
+  eq (i = k) = false .
+  eq j = k .
+endfm
+---red in MUTEX-WANT-1-2-1 : mutex(s,i,j) implies mutex(want(s,k),i,j) .
+
+fmod MUTEX-WANT-1-2-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = rs .
+  eq (i = k) = false .
+  eq (j = k) = false .
+endfm
+---red in MUTEX-WANT-1-2-2 : mutex(s,i,j) implies mutex(want(s,k),i,j) .
+
+fmod MUTEX-WANT-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = rs) = false .
+endfm
+---red in MUTEX-WANT-1-2-2 : mutex(s,i,j) implies mutex(want(s,k),i,j) .
+
+--- induction case try
+fmod MUTEX-TRY-1-1-1-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq top(queue(s)) = k .
+  eq i = k .
+  eq j = k .
+endfm
+---red in MUTEX-TRY-1-1-1-1 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+--- false unless inv1 is used as a lemma
+fmod MUTEX-TRY-1-1-1-2-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq top(queue(s)) = k .
+  eq i = k .
+  eq (j = k) = false .
+  eq pc(s,j) = cs .
+endfm
+---red in MUTEX-TRY-1-1-1-2-1 : (inv1(s,j) and mutex(s,i,j)) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-1-1-1-2-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq top(queue(s)) = k .
+  eq i = k .
+  eq (j = k) = false .
+  eq (pc(s,j) = cs) = false .
+endfm
+---red in MUTEX-TRY-1-1-1-2-2 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+--- false unless inv1 is used as a lemma
+fmod MUTEX-TRY-1-1-2-1-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq top(queue(s)) = k .
+  eq (i = k) = false .
+  eq j = k .
+  eq pc(s,i) = cs .
+endfm
+---red in MUTEX-TRY-1-1-2-1-1 : (inv1(s,i) and mutex(s,i,j)) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-1-1-2-1-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq top(queue(s)) = k .
+  eq (i = k) = false .
+  eq j = k .
+  eq (pc(s,i) = cs) = false .
+endfm
+---red in MUTEX-TRY-1-1-2-1-2 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-1-1-2-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq top(queue(s)) = k .
+  eq (i = k) = false .
+  eq (j = k) = false .
+endfm
+---red in MUTEX-TRY-1-1-2-2 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-1-2-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq (top(queue(s)) = k) = false .
+  eq i = k .
+endfm
+---red in MUTEX-TRY-1-2-1 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-1-2-2-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq (top(queue(s)) = k) = false .
+  eq (i = k) = false .
+  eq j = k .
+endfm
+---red in MUTEX-TRY-1-2-2-1 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-1-2-2-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq (top(queue(s)) = k) = false .
+  eq (i = k) = false .
+  eq (j = k) = false .
+endfm
+---red in MUTEX-TRY-1-2-2-2 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-2-1-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = ws) = false .
+  eq i = k .
+  eq j = k .
+endfm
+---red in MUTEX-TRY-2-1-1 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-2-1-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = ws) = false .
+  eq i = k .
+  eq (j = k) = false .
+endfm
+---red in MUTEX-TRY-2-1-2 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-2-2-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = ws) = false .
+  eq (i = k) = false .
+  eq j = k .
+endfm
+---red in MUTEX-TRY-2-2-1 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+fmod MUTEX-TRY-2-2-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = ws) = false .
+  eq (i = k) = false .
+  eq (j = k) = false .
+endfm
+---red in MUTEX-TRY-2-2-2 : mutex(s,i,j) implies mutex(try(s,k),i,j) .
+
+--- induction case exit
+fmod MUTEX-EXIT-1-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = cs .
+  eq i = k .
+endfm
+---red in MUTEX-EXIT-1-1 : mutex(s,i,j) implies mutex(exit(s,k),i,j) .
+
+fmod MUTEX-EXIT-1-2-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = cs .
+  eq (i = k) = false .
+  eq j = k .
+endfm
+---red in MUTEX-EXIT-1-2-1 : mutex(s,i,j) implies mutex(exit(s,k),i,j) .
+
+fmod MUTEX-EXIT-1-2-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = cs .
+  eq (i = k) = false .
+  eq (j = k) = false .
+endfm
+---red in MUTEX-EXIT-1-2-2 : mutex(s,i,j) implies mutex(exit(s,k),i,j) .
+
+fmod MUTEX-EXIT-2-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = cs) = false .
+  eq i = k .
+endfm
+---red in MUTEX-EXIT-2-1 : mutex(s,i,j) implies mutex(exit(s,k),i,j) .
+
+fmod MUTEX-EXIT-2-2-1 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = cs) = false .
+  eq (i = k) = false .
+  eq j = k .
+endfm
+---red in MUTEX-EXIT-2-2-1 : mutex(s,i,j) implies mutex(exit(s,k),i,j) .
+
+fmod MUTEX-EXIT-2-2-2 is
+  pr PROPERTIES .
+  ops i j k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = cs) = false .
+  eq (i = k) = false .
+  eq (j = k) = false .
+endfm
+---red in MUTEX-EXIT-2-2-2 : mutex(s,i,j) implies mutex(exit(s,k),i,j) .
+*** end proof of mutex ***
+
+*** proof of inv1 ***
+--- base case
+fmod INV1-INIT is
+  pr PROPERTIES .
+  op i : -> Pid .
+endfm
+---red in INV1-INIT : inv1(init,i) .
+
+--- induction case want 
+fmod INV1-WANT-1-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = rs .
+  eq i = k .
+endfm
+---red in INV1-WANT-1-1 : inv1(s,i) implies inv1(want(s,k),i) .
+
+--- induction case want 
+fmod INV1-WANT-1-2-1-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = rs .
+  eq (i = k) = false .
+  eq pc(s,i) = cs .
+  eq top(queue(s)) = i .
+endfm
+---red in INV1-WANT-1-2-1-1 : (lm1(queue(s),k) and inv1(s,i)) implies inv1(want(s,k),i) .
+--- --- red in INV1-WANT-1-2-1-1 : inv1(s,i) implies inv1(want(s,k),i) .
+
+fmod INV1-WANT-1-2-1-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = rs .
+  eq (i = k) = false .
+  eq pc(s,i) = cs .
+  eq (top(queue(s)) = i) = false .
+endfm
+---red in INV1-WANT-1-2-1-2 : inv1(s,i) implies inv1(want(s,k),i) .
+
+fmod INV1-WANT-1-2-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = rs .
+  eq (i = k) = false .
+  eq (pc(s,i) = cs) = false .
+endfm
+---red in INV1-WANT-1-2-2 : inv1(s,i) implies inv1(want(s,k),i) .
+
+fmod INV1-WANT-2-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = rs) = false .
+  eq i = k .
+endfm
+---red in INV1-WANT-2-1 : inv1(s,i) implies inv1(want(s,k),i) .
+
+fmod INV1-WANT-2-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = rs) = false .
+  eq (i = k) = false .
+endfm
+---red in INV1-WANT-2-2 : inv1(s,i) implies inv1(want(s,k),i) .
+
+--- induction case try 
+fmod INV1-TRY-1-1-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq top(queue(s)) = k .
+  eq i = k .
+endfm
+---red in INV1-TRY-1-1-1 : inv1(s,i) implies inv1(try(s,k),i) .
+
+fmod INV1-TRY-1-1-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq top(queue(s)) = k .
+  eq (i = k) = false .
+endfm
+---red in INV1-TRY-1-1-2 : inv1(s,i) implies inv1(try(s,k),i) .
+
+fmod INV1-TRY-1-2-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq (top(queue(s)) = k) = false .
+  eq i = k .
+endfm
+---red in INV1-TRY-1-2-1 : inv1(s,i) implies inv1(try(s,k),i) .
+
+fmod INV1-TRY-1-2-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = ws .
+  eq (top(queue(s)) = k) = false .
+  eq (i = k) = false .
+endfm
+---red in INV1-TRY-1-2-2 : inv1(s,i) implies inv1(try(s,k),i) .
+
+fmod INV1-TRY-2-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = ws) = false .
+  eq i = k .
+endfm
+---red in INV1-TRY-2-1 : inv1(s,i) implies inv1(try(s,k),i) .
+
+fmod INV1-TRY-2-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = ws) = false .
+  eq (i = k) = false .
+endfm
+---red in INV1-TRY-2-2 : inv1(s,i) implies inv1(try(s,k),i) .
+
+--- induction case exit 
+fmod INV1-EXIT-1-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = cs .
+  eq i = k .
+endfm
+---red in INV1-EXIT-1-1 : inv1(s,i) implies inv1(exit(s,k),i) .
+
+fmod INV1-EXIT-1-2-1-1-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = cs .
+  eq (i = k) = false .
+  eq pc(s,i) = cs .
+  eq top(queue(s)) = i .
+  eq top(deq(queue(s))) = i .
+endfm
+---red in INV1-EXIT-1-2-1-1-1 : inv1(s,i) implies inv1(exit(s,k),i) .
+
+--- false unless mutex is used as a lemma
+fmod INV1-EXIT-1-2-1-1-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = cs .
+  eq (i = k) = false .
+  eq pc(s,i) = cs .
+  eq top(queue(s)) = i .
+  eq (top(deq(queue(s))) = i) = false .
+endfm
+---red in INV1-EXIT-1-2-1-1-2 : (mutex(s,i,k) and inv1(s,i)) implies inv1(exit(s,k),i) .
+
+fmod INV1-EXIT-1-2-1-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = cs .
+  eq (i = k) = false .
+  eq pc(s,i) = cs .
+  eq (top(queue(s)) = i) = false .
+endfm
+---red in INV1-EXIT-1-2-1-2 : inv1(s,i) implies inv1(exit(s,k),i) .
+
+fmod INV1-EXIT-1-2-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq pc(s,k) = cs .
+  eq (i = k) = false .
+  eq (pc(s,i) = cs) = false .
+endfm
+---red in INV1-EXIT-1-2-2 : inv1(s,i) implies inv1(exit(s,k),i) .
+
+fmod INV1-EXIT-2-1 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = cs) = false .
+  eq i = k .
+endfm
+---red in INV1-EXIT-2-1 : inv1(s,i) implies inv1(exit(s,k),i) .
+
+fmod INV1-EXIT-2-2 is
+  pr PROPERTIES .
+  ops i k : -> Pid .
+  op s : -> Sys .
+  eq (pc(s,k) = cs) = false .
+  eq (i = k) = false .
+endfm
+
+---red in INV1-EXIT-2-2 : inv1(s,i) implies inv1(exit(s,k),i) .
+get variants [10] in PROPERTIES : queue(S:Sys) .
+---get variants in PROPERTIES : inv2(S:Sys,I:Pid) implies inv2(S':Sys,I:Pid) .
+
+---variant unify in PROPERTIES : prev(S':Sys) =? S:Sys /\ (mutex(S:Sys,I:Pid,J:Pid) implies mutex(S':Sys,I:Pid,J:Pid)) =? true .
+---variant unify in PROPERTIES : prev(S':Sys) =? S:Sys /\ (inv2(S:Sys,I:Pid) implies inv2(S':Sys,I:Pid)) =? true .
+---variant unify in PROPERTIES : prev(S':Sys) =? S:Sys /\ (inv3(S:Sys,I:Pid) implies inv3(S':Sys,I:Pid)) =? true .
+---variant unify in PROPERTIES : prev(S':Sys) =? S:Sys /\ (inv4(S:Sys,I:Pid) implies inv4(S':Sys,I:Pid)) =? true .
+---variant unify in PROPERTIES : prev(S':Sys) =? S:Sys /\ (inv5(S:Sys,I:Pid) implies inv5(S':Sys,I:Pid)) =? true .
+---variant unify in PROPERTIES : prev(S':Sys) =? S:Sys /\ (inv6(S:Sys,I:Pid) implies inv6(S':Sys,I:Pid)) =? true .

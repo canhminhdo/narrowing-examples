@@ -1,0 +1,165 @@
+fmod NAT-FVP is
+   sorts NatFVP NzNatFVP . 
+   subsort NzNatFVP < NatFVP .
+
+   op 0 : -> NatFVP [ctor] .
+   op 1 : -> NzNatFVP [ctor] .
+   op _+_ : NzNatFVP NatFVP -> NzNatFVP [ctor assoc comm id: 0] .
+   op _+_ : NatFVP NatFVP -> NatFVP [ctor assoc comm id: 0] .
+endfm
+
+fmod PROCESS is
+   pr NAT-FVP .
+   
+   --- Queue of node IDs requesting to enter the critical section
+   sort NeQueue Queue .
+   subsort NatFVP < NeQueue < Queue .
+   op empty : -> Queue [ctor] .
+   op _,_ : Queue Queue -> Queue [ctor assoc id: empty] .
+   op _,_ : NeQueue Queue -> NeQueue [ctor ditto] .
+   op _,_ : Queue NeQueue -> NeQueue [ctor ditto] .
+
+   --- Array structure needed for:
+   --- The request number of process j that was most recently granted (ln)
+   --- Recording the highest request number received from each process (rn)
+   sorts Array ArrayElem .
+   subsort ArrayElem < Array .
+   op empty : -> Array [ctor] . 
+   op [_:_] : NatFVP NatFVP -> ArrayElem [ctor] . 
+   op __ : Array Array -> Array [assoc comm id: empty] .
+
+   
+   --- Label refering to the state of a process
+   sorts Label RWLabel .
+   subsort RWLabel < Label .
+   ops rs ws : -> RWLabel [ctor] .
+   op cs : -> Label [ctor] .
+   
+   --- Definition of Bool
+   sorts MyBool False True .
+   subsorts False True < MyBool .
+   op true : -> True [ctor] .
+   op false : -> False [ctor] .
+
+   --- Definition of a process
+   sorts RWProc Proc .
+   subsort RWProc < Proc .
+   op [_|_|`req:_,priv:_] : NatFVP RWLabel MyBool False -> RWProc [ctor] .
+   op [_|_|`req:_,priv:_] : NatFVP Label MyBool True -> Proc [ctor] .
+endfm
+
+mod SUZUKI-KASAMI is
+   pr PROCESS .
+   
+   sorts ProcSet RWProcSet .
+   subsort RWProcSet < ProcSet .
+   subsort Proc < ProcSet .
+   subsort RWProc < RWProcSet .
+
+   op void : -> RWProcSet [ctor] .
+   op __ : RWProcSet RWProcSet -> RWProcSet [assoc comm id: void] .
+   op __ : ProcSet ProcSet -> ProcSet [assoc comm id: void] .
+
+   sort Config . 
+   op {_||`queue:_,ln:_,rn:_} : ProcSet Queue Array Array -> Config [ctor] .
+   
+   var PS1 : ProcSet .
+   var RWPS1 : RWProcSet .
+   var PROC1 : Proc .
+   vars PID1 PID2 PID3 : NatFVP .
+   vars A1 A2 A3 A4 A5 A6 A7 A8 : Array .
+   vars N1 N2 N3 : NatFVP .
+   var LB1 LB2 : Label .
+   vars B1 B2 B3 B4 B5 : MyBool .
+   vars Q1 Q2 : Queue .
+   vars NeQ1 : NeQueue .
+
+   ***(
+   *** l1
+   *** requesting := true;   
+   ***)
+   rl [request] : {[PID1 | rs | req: false, priv: B1] PS1 || queue: Q1, ln: A1, rn: A2 }
+               => {[PID1 | rs | req: true, priv: B1] PS1 || queue: Q1, ln: A1, rn: A2 } [narrowing] .
+
+   ***(
+   *** l2, l3, l4, cs
+   *** requesting := true; 
+   *** if not(have_privilege) 
+   *** then rn[i] := rn[i] + 1;
+   ***      for all j ∈ {1, …, N} – {i} do
+   ***          send request(i, rn[i]) to node j;
+   ***      endfor
+   ***      l5
+   *** endif  
+   *** Critical Section;
+   ***)
+   rl [check-priv-t] : {[PID1 | rs | req: true, priv: true] PS1 || queue: Q1, ln: A1, rn: ([PID1 : N1] A2) }
+               => {[PID1 | cs | req: true, priv: true] PS1 || queue: Q1, ln: A1, rn: ([PID1 : N1] A2) } [narrowing] .
+   
+   rl [check-priv-f] : {[PID1 | rs | req: true, priv: false] PS1 || queue: Q1, ln: A1, rn: ([PID1 : N1] A2) }
+               => {[PID1 | ws | req: true, priv: false] PS1 || queue: (Q1, PID1), ln: A1, rn: ([PID1 : N1 + 1] A2) } [narrowing] .
+   
+   ***(
+   *** PROCEDURE 2 (request(j, n) received)
+   *** rn[j] := max(rn[j], n);
+   *** if have_privilege and not(requesting) and (rn[j] = ln[j] + 1)
+   *** then have_privilege := false;
+   ***      send privilege(queue, ln) to node j;
+   *** endif
+   ***)
+   rl [get-request] : {[PID1 | LB1 | req: false, priv: true] 
+                       [PID2 | LB2 | req: true, priv: false]
+                       PS1 || queue: Q1, ln: ([PID2 : N1 + 1] A1), rn: ([PID2 : N1] A2) }
+               => {[PID1 | LB1 | req: false, priv: false] 
+                   [PID2 | LB2 | req: true, priv: true]
+                   PS1 || queue: Q1, ln: ([PID2 : N1 + 1] A1), rn: ([PID2 : N1] A2) } [narrowing] .
+
+   ***(
+   *** l5, cs, l6
+   *** wait until privilege(queue, ln) is received;
+   *** have_privilege := true;
+   *** Critical Section;
+   *** ln[i] := rn[i];
+   ***)       
+   rl [get-priv] : {[PID1 | ws | req: true, priv: true] PS1 || 
+                    queue: (Q1, PID1), ln: ([PID1 : N1] A1), rn: ([PID1 : N2] A2)}
+               => {[PID1 | cs | req: true, priv: true] PS1 || 
+                   queue: Q1, ln: ([PID1 : N2] A1), rn: ([PID1 : N2] A2)} [narrowing] .
+
+   ***(
+   *** l7, l8, l9, l10
+   *** for all j ∈ {1, …, N} – {i} do
+   ***   if (j ∉ queue) ∧ (rn[j] = ln[j] + 1) 
+   ***   then queue := enq(queue, j);
+   ***   endif
+   *** endfor
+   *** if queue ≠ empty 
+   *** then have_privilege := false;
+   ***      send privilege(deq(queue), ln) to node top(queue);
+   *** endif
+   *** requesting := false;
+   ***)    
+   rl [crit-sec-empty] : {[PID1 | cs | req: true, priv: true] PS1 || queue: empty, ln: A1, rn: A2}
+               => {[PID1 | rs | req: false, priv: true] PS1 || queue: empty, ln: A1, rn: A2} [narrowing] .
+            
+   rl [crit-sec-nonempty] : {[PID1 | cs | req: true, priv: true] 
+                             [PID2 | ws | req: true, priv: false] 
+                             PS1 || queue: (PID2, Q1), ln: A1, rn: A2}
+               => {[PID1 | rs | req: false, priv: false] 
+                   [PID2 | ws | req: true, priv: true] 
+                   PS1 || queue: (PID2, Q1), ln: A1, rn: A2} [narrowing] .
+endm
+
+fvu-narrow [1] in SUZUKI-KASAMI :
+{[PID1 | LB1 | req: B1, priv: true] RWPS1 || queue: Q1, ln: A1, rn: A2 }
+=>*
+{[PID2 | cs | req: B2, priv: B3] PS1 || queue: Q2, ln: A3, rn: A4 } .
+
+fvu-narrow [1] in SUZUKI-KASAMI :
+{[PID1 | LB1 | req: B1, priv: true] RWPS1 || queue: Q1, ln: A1, rn: A2 }
+=>*
+{[PID2 | cs | req: B2, priv: B3]
+ [PID3 | cs | req: B4, priv: B5]
+ PS1 || queue: Q2, ln: A3, rn: A4 } .
+
+

@@ -1,0 +1,50 @@
+mod TAS is
+  sorts Pid .
+  ops p1 p2 p3 : -> Pid [ctor] .
+  
+  sorts ProcSet RProcSet CProcSet .
+  subsorts CProcSet RProcSet < ProcSet .
+
+  sorts RProc CProc Proc .
+  subsorts CProc RProc < Proc .
+  subsort Proc < ProcSet .
+  subsort CProc < CProcSet .
+  subsort RProc < RProcSet .
+  
+  op pc[_]:`rs : Pid -> RProc [ctor] .
+  op pc[_]:`cs : Pid -> CProc [ctor] .
+
+  op void : -> ProcSet [ctor] .
+  op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
+
+  op void : -> RProcSet [ctor] .
+  op __ : RProcSet RProcSet -> RProcSet [ctor assoc comm id: void] .
+
+  sort Config . 
+  op {_|`locked:_} : ProcSet Bool -> Config [ctor] .
+
+  vars CPSET CPSET' : ProcSet .   
+  vars RPSET RPSET' : RProcSet .
+  vars PSET PSET' : ProcSet .
+  vars P P' : Pid .
+  var B : Bool .
+  
+  rl [enter] : {(pc[P]: rs) PSET | locked: false}
+            => {(pc[P]: cs) PSET | locked: true} [narrowing] .
+
+  rl [exit] : {(pc[P]: cs) PSET | locked: B}
+            => {(pc[P]: rs) PSET | locked: false} [narrowing] .
+endm
+
+--- Proving cs reachable
+{fold} vu-narrow [1] in TAS : 
+{RPSET | locked: false} 
+=>* 
+{(pc[P]: cs) CPSET | locked: B} .
+
+
+--- Negatively prove the mutex property
+{fold} vu-narrow [1] in TAS : 
+{RPSET | locked: false} 
+=>* 
+{(pc[P]: cs) (pc[P']: cs) CPSET | locked: B} .

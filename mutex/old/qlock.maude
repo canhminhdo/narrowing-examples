@@ -1,0 +1,67 @@
+mod QLOCK is
+  sorts Pid .
+  
+  sorts CLabel NCLabel Label .
+  subsorts NCLabel CLabel < Label .
+
+  ops rs ws : -> NCLabel [ctor] .
+  op cs : -> CLabel [ctor] .
+
+  sorts NCProc CProc Proc .
+  subsorts NCProc CProc < Proc .
+  
+  op pc[_]:_ : Pid NCLabel -> NCProc [ctor] .
+  op pc[_]:_ : Pid CLabel -> CProc [ctor] .
+ 
+  sorts CProcSet NCProcSet ProcSet .
+  subsorts CProcSet NCProcSet < ProcSet .
+  subsort Proc < ProcSet .
+  subsort NCProc < NCProcSet .
+  subsort CProc < CProcSet .
+
+  op void : -> ProcSet [ctor] .
+  op __ : ProcSet ProcSet -> ProcSet [assoc comm id: void] .
+  op __ : CProcSet CProcSet -> CProcSet [assoc comm id: void] .
+
+  sort PidQueue .
+  subsort Pid < PidQueue .
+
+  op empty : -> PidQueue [ctor] .
+  op _,_ : PidQueue PidQueue -> PidQueue [ctor assoc id: empty] .
+
+  sort Config . 
+  op {_|`queue:_} : CProcSet PidQueue -> Config [ctor] .
+
+  var PSET : ProcSet .
+  var CPSET : CProcSet . 
+  var NCPSET : NCProcSet .
+  vars Q Q' : PidQueue .
+  vars P P' : Pid .
+  var PROC : Proc .
+
+  eq [no-redundant] : PROC PROC = PROC .
+
+  rl [want] : {(pc[P]: rs) PSET | queue: Q }
+            => {(pc[P]: ws) PSET | queue: Q, P} [narrowing] .
+
+  rl [try] : {(pc[P]: ws) PSET | queue: P, Q }
+            => {(pc[P]: cs) PSET | queue: P, Q } [narrowing] .          
+
+  rl [exit-1] : {(pc[P]: cs) PSET | queue: P', Q }
+            => {(pc[P]: rs) PSET | queue: Q } [narrowing] .
+
+  rl [exit-2] : {(pc[P]: cs) PSET | queue: empty }
+            => {(pc[P]: rs) PSET | queue: empty } [narrowing] .    
+endm
+
+--- Proving cs reachable
+{fold} vu-narrow [1] in QLOCK : 
+{NCPSET | queue: Q} 
+=>* 
+{(pc[P]: cs) PSET | queue: Q'} .
+
+--- Negatively prove the mutex property
+{fold} vu-narrow [1] in QLOCK : 
+{NCPSET | queue: Q} 
+=>* 
+{(pc[P]: cs) (pc[P']: cs) PSET | queue: Q'} .

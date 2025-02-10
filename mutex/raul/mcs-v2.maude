@@ -122,8 +122,8 @@ mod MCS is
 
     --- chlck (repeat while lockp)
     rl [chlck] :  
-        { (PID | pc: l6, next: N1, pred: P1, lock: FF1) NCPS | glock: G1}
-    =>  { (PID | pc: cs, next: N1, pred: P1, lock: FF1) NCPS | glock: G1} [narrowing] .
+        { (PID | pc: l6, next: N1, pred: P1, lock: FF1) PSET | glock: G1}
+    =>  { (PID | pc: cs, next: N1, pred: P1, lock: FF1) NCPS | glock: G1} [nonexec narrowing] .
 
     --- exit (Critical Section)
     rl [exit] :
