@@ -100,8 +100,8 @@ mod ANDERSON is
     eq [no-redundance-next] : (pc[P]: L, N1) (pc[P']: L', N1) = (pc[P]: L, N1) .
 
     rl [want1] :
-        {(pc[P]: rs, N1) PSET | next: N2 | array: A | nproc: N2 + 1 }
-    =>  {(pc[P]: ws, N2) PSET | next: 0 | array: A | nproc: N2 + 1 } [narrowing] .
+        {(pc[P]: rs, N1) PSET | next: N2 | array: A | nproc: N2 + NZ1 }
+    =>  {(pc[P]: ws, N2) PSET | next: 0 | array: A | nproc: N2 + NZ1 } [narrowing] .
 
     rl [want2] :
         {(pc[P]: rs, N1) PSET | next: N2 | array: A | nproc: N2 + NZ1 + NZ2 }
@@ -112,12 +112,12 @@ mod ANDERSON is
     =>  {(pc[P]: cs, N1) PSET | next: N2 | array: FA [N1 : true] FA' | nproc: NPROC } [narrowing] .
 
     rl [exit1] : 
-        {(pc[P]: cs, N1) PSET | next: N2 | array: [0 : false] FA [N1 : true] | nproc: N1 }
-    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: [0 : true] FA [N1 : false] | nproc: N1 } [narrowing] .
+        {(pc[P]: cs, N1) PSET | next: N2 | array: [0 : false] FA [N1 : true] | nproc: N1 + NZ1 }
+    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: [0 : true] FA [N1 : false] | nproc: N1 + NZ1 } [narrowing] .
     
     rl [exit2] : 
-        {(pc[P]: cs, N1) PSET | next: N2 | array: FA [N1 : true] [N1 + 1 : false] FA' | nproc: N1 + NZ1 }
-    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: FA [N1 : false] [N1 + 1 : true] FA' | nproc: N1 + NZ1 } [narrowing] .
+        {(pc[P]: cs, N1) PSET | next: N2 | array: FA [N1 : true] [N1 + 1 : false] FA' | nproc: N1 + NZ1 + NZ2 }
+    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: FA [N1 : false] [N1 + 1 : true] FA' | nproc: N1 + NZ1 + NZ2 } [narrowing] .
 
 endm
 
