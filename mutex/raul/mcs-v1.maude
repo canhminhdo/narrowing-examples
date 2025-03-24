@@ -177,7 +177,12 @@ endm
 {CP1 PSET | glock: G2} .
 
 --- Negatively prove the mutex property
-{fold,path} vu-narrow {filter,delay} [1] in MCS : 
+{fold,path} vu-narrow {filter,delay} in MCS : 
 { NCPS | glock: G1}
 =>*
 { CP1 CP2 PSET | glock: G2} .
+
+{fold,path} vu-narrow {filter,delay} [,1] in MCS : 
+{NCPS N1 | pc: cs, next: N2, pred: N3, lock: ff | glock: N4}
+=>*
+C:Config .

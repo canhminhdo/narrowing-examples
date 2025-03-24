@@ -4,10 +4,11 @@ fmod LOC is
 
     op rs : -> RsLoc [ctor] .
     op cs : -> CsLoc [ctor] .
-endfm
+endfm 
 
 fmod PID is
     sort Pid .
+    ops a b c : -> Pid .
 endfm
 
 fmod PROC is
@@ -23,6 +24,7 @@ endfm
 
 fmod PROC-SET is
     pr PROC .
+
     sorts RsProcSet CsProcSet ProcSet .
     subsorts RsProc < RsProcSet < ProcSet .
     subsorts CsProc < CsProcSet < ProcSet .
@@ -36,30 +38,47 @@ endfm
 
 mod TAS is
     pr PROC-SET .
+    
     sort Config . 
 
     op {_|`locked:_} : ProcSet Bool -> Config [ctor] .
 
-    vars RsPSET RsPSET' : RsProcSet .
-    vars PSET PSET' : ProcSet .   
-    vars P P' : Pid .
-    var B : Bool .
-
+    vars P P1 P2 P3 : Pid .
+    vars B B1 B2 : Bool .
+    vars CPROC1 CPROC2 : CsProc .
+    var RsPSET : RsProcSet .
+    var PSET : ProcSet .   
+    
     rl [enter] : 
         {(pc[P]: rs) PSET | locked: false}
     =>  {(pc[P]: cs) PSET | locked: true} [narrowing] .
 
     rl [exit] : 
-        {(pc[P]: cs) PSET | locked: B}
+        {(pc[P]: cs) PSET | locked: true}
     =>  {(pc[P]: rs) PSET | locked: false} [narrowing] .
 endm
 
 --- Proving cs reachable
-{fold} vu-narrow [1] in TAS : 
+{fold} vu-narrow in TAS : 
     {RsPSET | locked: false} 
-=>* {(pc[P]: cs) PSET' | locked: B} .
+=>* {(pc[P]: cs) PSET | locked: B} .
+
+--- Negatively prove the mutex property for a fixed number of processes
+{fold} vu-narrow in TAS : 
+    {(pc[a]: cs) (pc[b]: cs) (pc[c]: cs) | locked: false} 
+=>* {(pc[P1]: cs) (pc[P2]: cs) PSET | locked: true} .
 
 --- Negatively prove the mutex property
-{fold} vu-narrow [1] in TAS : 
+{fold} vu-narrow in TAS : 
     {RsPSET | locked: false} 
-=>* {(pc[P]: cs) (pc[P']: cs) PSET' | locked: B} .
+=>* {(pc[P1]: cs) (pc[P2]: cs) PSET | locked: B} .
+
+--- Negatively prove the mutex property (Using only variables)
+{fold} vu-narrow in TAS : 
+    {RsPSET | locked: B1} 
+=>* {CPROC1 CPROC2 PSET | locked: B2} .
+
+vu-narrow [,1]in TAS : 
+    {RsPSET pc[X:Pid]: cs | locked: true}
+=>* C:Config .
+
