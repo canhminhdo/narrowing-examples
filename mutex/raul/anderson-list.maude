@@ -1,0 +1,85 @@
+fmod LOC is
+    sorts RsLoc WsLoc RwLoc CsLoc Loc .
+    subsorts RsLoc WsLoc < RwLoc .
+    subsorts RwLoc CsLoc < Loc .
+
+    op rs : -> RsLoc [ctor] .
+    op ws : -> WsLoc [ctor] .
+    op cs : -> CsLoc [ctor] .
+endfm
+
+fmod PROC is
+    pr LOC .
+    sorts RsProc WsProc RWProc CsProc IProc Proc .
+    subsorts RsProc WsProc < RWProc .
+    subsorts RWProc CsProc < IProc < Proc .
+
+    op p:_ : Loc -> Proc [ctor] .
+    op p:_ : RsLoc -> RsProc [ctor] .
+    op p:_ : WsLoc -> WsProc [ctor] .
+    op p:_ : CsLoc -> CsProc [ctor] .
+    op [_] : Proc -> IProc [ctor] .
+endfm
+
+fmod PROC-LIST is
+    pr PROC .
+    sorts RsProcList WsProcList RWProcList CsProcList ProcList .
+    subsorts RsProcList WsProcList < RWProcList .
+    subsorts RWProcList CsProcList < ProcList .
+    subsort RsProc < RsProcList .
+    subsort WsProc < WsProcList .
+    subsort CsProc < CsProcList .
+    subsort Proc < ProcList .
+
+    op empty : -> ProcList [ctor] .
+    op __ : ProcList ProcList -> ProcList [ctor assoc id: empty] .
+    op __ : RsProcList RsProcList -> RsProcList [ctor ditto] .
+    op __ : WsProcList WsProcList -> WsProcList [ctor ditto] .
+    op __ : CsProcList CsProcList -> CsProcList [ctor ditto] .
+    op __ : RWProcList RWProcList -> RWProcList [ctor ditto] .
+endfm
+
+mod ANDERSON is
+    pr PROC-LIST .
+    sort Config . 
+
+    op {_} : ProcList -> Config [ctor] .
+  
+    vars RWPLIST RWPLIST' : RWProcList .
+    var RSPLIST RSPLIST' : RsProcList .
+    vars PLIST PLIST' PLIST'' PLIST''' : ProcList . 
+    var PROC : Proc .
+    var IPROC : IProc .
+    vars CSPROC CSPROC' : CsProc .
+    vars L L' : Loc .
+
+    rl [want-1] : {PLIST (p: rs) PLIST'} 
+               => {PLIST (p: ws) PLIST'} [narrowing] .
+
+    rl [want-2] : {PLIST [p: rs] PLIST'} 
+               => {PLIST [p: ws] PLIST'} [narrowing] .
+
+    rl [try] : {PLIST [p: ws] PLIST'} 
+            => {PLIST [p: cs] PLIST'} [narrowing] .
+
+    rl [exit-1] : {PLIST [p: cs] PLIST' (p: ws) PLIST''} 
+               => {PLIST (p: rs) PLIST' [p: ws] PLIST''} [narrowing] .
+
+    rl [exit-2] : {PLIST (p: ws) PLIST' [p: cs] PLIST''} 
+               => {PLIST [p: ws] PLIST' (p: rs) PLIST''} [narrowing] .
+endm
+
+--- Proving cs is reachable
+{fold,path} vu-narrow [1] in ANDERSON : 
+    { RSPLIST [p: rs] RSPLIST' } 
+=>* { PLIST [CSPROC] PLIST' } .
+
+--- Negatively prove the mutex property
+{fold,path} vu-narrow in ANDERSON : 
+    { RWPLIST [p: rs] RWPLIST' } 
+=>* { PLIST [CSPROC] PLIST' [CSPROC'] PLIST'' } .
+
+--- Negatively prove the mutex property (wrong initial state)
+{fold,path} vu-narrow in ANDERSON : 
+    { PLIST } 
+=>* { PLIST' [CSPROC] PLIST'' [CSPROC'] PLIST''' } .

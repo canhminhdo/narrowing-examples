@@ -1,0 +1,132 @@
+fmod LOC is
+    sorts RsLoc WsLoc RwLoc CsLoc Loc .
+    subsorts RsLoc WsLoc < RwLoc .
+    subsorts RwLoc CsLoc < Loc .
+
+    op rs : -> RsLoc [ctor] .
+    op ws : -> WsLoc [ctor] .
+    op cs : -> CsLoc [ctor] .
+endfm
+
+fmod NAT-FVP is
+    sorts Nat NzNat LNat . 
+    subsort NzNat < Nat < LNat .
+
+    op 0 : -> Nat [ctor] .
+    op 1 : -> NzNat [ctor] .
+    op _+_ : NzNat Nat -> NzNat [ctor assoc comm id: 0] .
+    op _+_ : Nat Nat -> Nat [ctor assoc comm id: 0] .
+    op [_] : Nat -> LNat [ctor] .
+endfm
+
+fmod PROC is
+    pr LOC .
+    pr NAT-FVP .
+    sorts RsProc WsProc RWProc CsProc Proc .
+    subsorts RsProc WsProc < RWProc .
+    subsorts RWProc CsProc < Proc .
+
+    op p:_,_ : Loc Nat -> Proc [ctor] .
+    op p:_ : RsLoc -> RsProc [ctor] .
+    op p:_,_ : WsLoc Nat -> WsProc [ctor] .
+    op p:_,_ : CsLoc Nat -> CsProc [ctor] .
+endfm
+
+fmod PROC-SET is
+    pr PROC .
+    sorts RsProcSet WsProcSet RWProcSet CsProcSet ProcSet .
+    subsorts RsProcSet WsProcSet < RWProcSet .
+    subsorts RWProcSet CsProcSet < ProcSet .
+    subsort RsProc < RsProcSet .
+    subsort WsProc < WsProcSet .
+    subsort CsProc < CsProcSet .
+    subsort Proc < ProcSet .
+
+    op void : -> ProcSet [ctor] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
+    op __ : RsProcSet RsProcSet -> RsProcSet [ctor ditto] .
+    op __ : WsProcSet WsProcSet -> WsProcSet [ctor ditto] .
+    op __ : CsProcSet CsProcSet -> CsProcSet [ctor ditto] .
+    op __ : RWProcSet RWProcSet -> RWProcSet [ctor ditto] .
+endfm
+
+fmod IBOOL is
+    sorts True False IBool .
+    subsorts True False < IBool .
+
+    op true : -> True [ctor] . 
+    op false : -> False [ctor] .
+endfm
+
+fmod IARRAY is
+    pr NAT-FVP .
+    pr IBOOL .
+    sorts TElem FElem Elem EmpArray TArray FArray Array .
+    subsorts TElem < TArray .
+    subsorts FElem < FArray .
+    subsorts TElem FElem < Elem < Array .
+    subsorts TArray FArray < Array .
+    subsorts EmpArray < TArray FArray < Array .
+    
+    --- an array must has at least one false element
+    op empty : -> EmpArray [ctor] . 
+    op [_:_] : LNat True -> TElem [ctor] . 
+    op [_:_] : LNat False -> FElem [ctor] . 
+    op __ : EmpArray EmpArray -> EmpArray [ctor assoc id: empty] .
+    op __ : FArray FArray -> FArray [ctor ditto] .
+    op __ : TArray TArray -> TArray [ctor ditto] .
+    op __ : Array Array -> Array [ctor ditto] .
+endfm
+
+mod ANDERSON is
+    pr PROC-SET .
+    pr IARRAY .
+    sort Config . 
+
+    op {_|`next:_|`array:_|`nproc:_} : ProcSet Nat Array Nat -> Config [ctor] .
+  
+    vars RWPSET RWPSET' : RWProcSet .
+    var RSPSET : RsProcSet .
+    vars N1 N2 N3 N4 N5 N6 N7 NPROC : Nat .
+    vars NZ1 NZ2 NZ3 : NzNat .
+    vars PSET PSET' : ProcSet . 
+    vars B1 B2 : IBool .
+    vars A A' : Array .
+    vars FA FA' : FArray .
+    vars TA TA' : TArray .
+    var TE : TElem .
+    var PROC : Proc .
+    vars CSPROC CSPROC' : CsProc .
+    vars L L' : Loc .
+
+    rl [want1] :
+        {(p: rs) PSET | next: N2 | array: A | nproc: N2 + 1 }
+    =>  {(p: ws, N2) PSET | next: 0 | array: A | nproc: N2 + 1 } [narrowing] .
+
+    rl [want2] :
+        {(p: rs) PSET | next: N2 | array: A | nproc: N2 + NZ1 + NZ2 }
+    =>  {(p: ws, N2) PSET | next: N2 + 1 | array: A | nproc: N2 + NZ1 + NZ2 } [narrowing] .
+
+    rl [try] : 
+        {(p: ws, N1) PSET | next: N2 | array: A [N1 : true] A' | nproc: NPROC }
+    =>  {(p: cs, N1) PSET | next: N2 | array: A [[N1] : true] A' | nproc: NPROC } [narrowing] .
+
+    rl [exit1] : 
+        {(p: cs, N1) PSET | next: N2 | array: [0 : B1] A [[N1] : true] | nproc: N1 + 1 }
+    =>  {(p: rs) PSET | next: N2 | array: [0 : true] A [N1 : false] | nproc: N1 + 1 } [narrowing] .
+    
+    rl [exit2] : 
+        {(p: cs, N1) PSET | next: N2 | array: A [[N1] : true] [N1 + 1 : B1] A' | nproc: N1 + NZ1 + NZ2 }
+    =>  {(p: rs) PSET | next: N2 | array: A [N1 : false] [N1 + 1 : true] A' | nproc: N1 + NZ1 + NZ2 } [narrowing] .
+
+endm
+
+--- Proving cs is reachable
+fvu-narrow [1] in ANDERSON : 
+    {RSPSET | next: 0 | array: [0 : true] FA | nproc: NZ1} 
+=>* {(p: cs, N3) PSET | next: N4 | array: A | nproc: NZ1} .
+
+--- Negatively prove the mutex property
+{fold,path} vu-narrow [1] in ANDERSON : 
+    {RWPSET | next: N1 | array: FA [N2 : true] FA' | nproc: NZ1} 
+=>* {CSPROC CSPROC' PSET | next: N3 | array: A | nproc: NZ1} .
