@@ -8,10 +8,6 @@ fmod LOC is
     op cs : -> CsLoc [ctor] .
 endfm
 
-fmod PID is
-    sort Pid .
-endfm
-
 fmod NAT-FVP is
     sorts Nat NzNat . 
     subsort NzNat < Nat .
@@ -22,16 +18,15 @@ fmod NAT-FVP is
     op _+_ : Nat Nat -> Nat [ctor assoc comm id: 0] .
 endfm
 
-fmod PROC is
-    pr PID .
+fmod PROC is   
     pr LOC .
     pr NAT-FVP .
     sorts RsProc WsProc RWProc Proc .
     subsorts RsProc WsProc < RWProc < Proc .
 
-    op pc[_]:_,_ : Pid Loc Nat -> Proc [ctor] .
-    op pc[_]:_,_ : Pid RsLoc Nat -> RsProc [ctor] .
-    op pc[_]:_,_ : Pid WsLoc Nat -> WsProc [ctor] .
+    op p:_ : RsLoc -> RsProc [ctor] .
+    op p:_,_ : WsLoc Nat -> WsProc [ctor] .
+    op p:_,_ : Loc Nat -> Proc [ctor] .
 endfm
 
 fmod PROC-SET is
@@ -85,47 +80,46 @@ mod ANDERSON is
     vars RWPSET RWPSET' : RWProcSet .
     var RSPSET : RsProcSet .
     vars N1 N2 N3 N4 N5 N6 N7 NPROC : Nat .
-    vars NZ1 NZ2 : NzNat .
+    vars NZ1 NZ2 NZNPROC1 NZNPROC2 : NzNat .
     vars PSET PSET' : ProcSet . 
     vars B1 B2 : IBool .
     vars A A' : Array .
     vars FA FA' : FArray .
     vars TA TA' : TArray .
     var TE : TElem .
-    vars P P' P'' P''' P'''' : Pid .
     var PROC : Proc .
     vars L L' : Loc .
 
-    eq [no-redundance-next] : (pc[P]: L, N1) (pc[P']: L', N1) = (pc[P]: L, N1) .
+    ---eq [no-redundance-next] : (p: L, N1) (p: L', N1) = (p: L, N1) .
 
     rl [want1] :
-        {(pc[P]: rs, N1) PSET | next: N2 | array: A | nproc: N2 + 1 }
-    =>  {(pc[P]: ws, N2) PSET | next: 0 | array: A | nproc: N2 + 1 } [narrowing] .
+        {(p: rs) PSET | next: N2 | array: A | nproc: N2 + 1 }
+    =>  {(p: ws, N2) PSET | next: 0 | array: A | nproc: N2 + 1 } [narrowing] .
 
     rl [want2] :
-        {(pc[P]: rs, N1) PSET | next: N2 | array: A | nproc: N2 + NZ1 + NZ2 }
-    =>  {(pc[P]: ws, N2) PSET | next: N2 + 1 | array: A | nproc: N2 + NZ1 + NZ2 } [narrowing] .
+        {(p: rs) PSET | next: N2 | array: A | nproc: N2 + NZ1 + NZ2 }
+    =>  {(p: ws, N2) PSET | next: N2 + 1 | array: A | nproc: N2 + NZ1 + NZ2 } [narrowing] .
 
     rl [try] : 
-        {(pc[P]: ws, N1) PSET | next: N2 | array: FA [N1 : true] FA' | nproc: NPROC }
-    =>  {(pc[P]: cs, N1) PSET | next: N2 | array: FA [N1 : true] FA' | nproc: NPROC } [narrowing] .
+        {(p: ws, N1) PSET | next: N2 | array: FA [N1 : true] FA' | nproc: NPROC }
+    =>  {(p: cs, N1) PSET | next: N2 | array: FA [N1 : true] FA' | nproc: NPROC } [narrowing] .
 
     rl [exit1] : 
-        {(pc[P]: cs, N1) PSET | next: N2 | array: [0 : false] FA [N1 : true] | nproc: N1 + 1 }
-    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: [0 : true] FA [N1 : false] | nproc: N1 + 1 } [narrowing] .
+        {(p: cs, N1) PSET | next: N2 | array: [0 : false] FA [N1 : true] | nproc: N1 + 1 }
+    =>  {(p: rs) PSET | next: N2 | array: [0 : true] FA [N1 : false] | nproc: N1 + 1 } [narrowing] .
     
     rl [exit2] : 
-        {(pc[P]: cs, N1) PSET | next: N2 | array: FA [N1 : true] [N1 + 1 : false] FA' | nproc: N1 + NZ1 + NZ2 }
-    =>  {(pc[P]: rs, N1) PSET | next: N2 | array: FA [N1 : false] [N1 + 1 : true] FA' | nproc: N1 + NZ1 + NZ2 } [narrowing] .
+        {(p: cs, N1) PSET | next: N2 | array: FA [N1 : true] [N1 + 1 : false] FA' | nproc: N1 + NZ1 + NZ2 }
+    =>  {(p: rs) PSET | next: N2 | array: FA [N1 : false] [N1 + 1 : true] FA' | nproc: N1 + NZ1 + NZ2 } [narrowing] .
 
 endm
 
 --- Proving cs is reachable
 fvu-narrow [1] in ANDERSON : 
-    {RWPSET | next: N4 | array: A | nproc: NPROC} 
-=>* {(pc[P''']: cs, N5) PSET | next: N6 | array: A' | nproc: NPROC} .
+    {RSPSET | next: N1 | array: A | nproc: NZNPROC1 + NZNPROC2}
+=>* {(p: cs, N2) PSET | next: N3 | array: A' | nproc: NZNPROC1 + NZNPROC2} .
 
 --- Negatively prove the mutex property
 {fold,path} vu-narrow [1] in ANDERSON : 
-    {RWPSET | next: N1 | array: A | nproc: NPROC}
-=>* {(pc[P]: cs, N2) (pc[P']: cs, N3) PSET | next: N4 | array: A' | nproc: NPROC} .
+    {RWPSET | next: N1 | array: A | nproc: NZNPROC1 + NZNPROC2}
+=>* {(p: cs, N2) (p: cs, N3) PSET | next: N4 | array: A' | nproc: NZNPROC1 + NZNPROC2} .

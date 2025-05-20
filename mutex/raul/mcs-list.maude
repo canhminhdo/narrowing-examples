@@ -45,7 +45,7 @@ mod ANDERSON is
 
     op {_} : ProcList -> Config [ctor] .
   
-    vars RWPLIST RWPLIST' : RWProcList .
+    vars RWPLIST RWPLIST' RWPLIST'' : RWProcList .
     var RSPLIST RSPLIST' : RsProcList .
     vars PLIST PLIST' PLIST'' PLIST''' : ProcList . 
     var PROC : Proc .
@@ -81,5 +81,5 @@ endm
 
 --- Negatively prove the mutex property (wrong initial state)
 {fold,path} vu-narrow in ANDERSON : 
-    { PLIST } 
+    { RWPLIST [p: rs] RWPLIST' [p: rs] RWPLIST''} 
 =>* { PLIST' [CSPROC] PLIST'' [CSPROC'] PLIST''' } .
