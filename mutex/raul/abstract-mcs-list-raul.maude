@@ -1,0 +1,203 @@
+fmod IBOOL is
+    sorts ITrue IFalse IBool .
+    subsorts ITrue IFalse < IBool .
+
+    op tt : -> ITrue [ctor] . 
+    op ff : -> IFalse [ctor] .
+endfm
+
+fmod LOC is
+    sorts RsLoc WsLoc RWLoc CsLoc Loc .
+    subsorts RsLoc WsLoc < RWLoc .
+    subsorts RWLoc CsLoc < Loc .
+
+    op rs : -> RsLoc [ctor] .
+    op l1 : -> RsLoc [ctor] .
+    op l2 : -> RsLoc [ctor] .
+    op l3 : -> WsLoc [ctor] .
+    op l4 : -> WsLoc [ctor] .
+    op l5 : -> WsLoc [ctor] .
+    op l6 : -> WsLoc [ctor] .
+    op l7 : -> WsLoc [ctor] .
+    op l8 : -> WsLoc [ctor] .
+    op l9 : -> WsLoc [ctor] .
+    op l10 : -> WsLoc [ctor] .
+    op l11 : -> WsLoc [ctor] .
+    op l12 : -> WsLoc [ctor] .
+    op cs : -> CsLoc [ctor] .
+endfm
+
+fmod PROC is
+    pr LOC .
+    pr IBOOL .
+
+    sorts NNRProc NNWProc NNRWProc NNCProc NNProc .
+    subsorts NNRProc NNWProc < NNRWProc .
+    subsorts NNRWProc NNCProc < NNProc .
+    op <_,_> : NNLoc IBool -> NNProc [ctor] .
+    op <_,_> : NNRsLoc IBool -> NNRProc [ctor] .
+    op <_,_> : NNWsLoc IBool -> NNWProc [ctor] .
+    op <_,_> : NNCsLoc IBool -> NNCProc [ctor] .
+
+    sorts NRProc NWProc NRWProc NCProc NProc .
+    subsorts NRProc NWProc < NRWProc .
+    subsorts NRWProc NCProc < NProc .
+    op <_,_>> : NLoc IBool -> NProc [ctor] .
+    op <_,_>> : NRsLoc IBool -> NRProc [ctor] .
+    op <_,_>> : NWsLoc IBool -> NWProc [ctor] .
+    op <_,_>> : NCsLoc IBool -> NCProc [ctor] .
+    
+    subsorts RProc WProc < RWProc .
+    subsorts RWProc CProc < Proc .
+    sorts RProc WProc RWProc CProc Proc .
+    op <<_,_>> : Loc IBool -> Proc [ctor] .
+    op <<_,_>> : RsLoc IBool -> RProc [ctor] .
+    op <<_,_>> : WsLoc IBool -> WProc [ctor] .
+    op <<_,_>> : CsLoc IBool -> CProc [ctor] .
+    
+endfm
+
+fmod PROCLIST is
+    pr PROC .
+    
+    sort Empty .
+    op void : -> Empty [ctor] .
+    op __ : Empty Empty -> Empty [ctor assoc id: void] .
+
+    sorts NNRProcList NNWProcList NNRWProcList NNCProcList NNNeProcList NNProcList .
+    subsorts Empty < NNRProcList NNWProcList < NNRWProcList < NNProcList .
+    subsorts Empty < NNCProcList < NNProcList .
+    subsorts NNRProc < NNRProcList .
+    subsorts NNWProc < NNWProcList .
+    subsorts NNCProc < NNCProcList .
+    subsorts NNProc < NNNeProcList < NNProcList .
+    op __ : NNProcList NNProcList -> NNProcList [ctor assoc id: void] .
+    op __ : NNRProcList NNRProcList -> NNRProcList [ctor ditto] .
+    op __ : NNWProcList NNWProcList -> NNWProcList [ctor ditto] .
+    op __ : NNCProcList NNCProcList -> NNCProcList [ctor ditto] .
+    op __ : NNRWProcList NNRWProcList -> NNRWProcList [ctor ditto] .
+
+    sorts RProcList WProcList RWProcList CProcList NeProcList ProcList .
+    subsorts Empty < RProcList WProcList < RWProcList < ProcList .
+    subsorts Empty < CProcList < ProcList .
+    subsorts NRProc RProc < RProcList .
+    subsorts NWProc WProc < WProcList .
+    subsorts NCProc CProc < CProcList .
+    subsorts NProc Proc < NeProcList < ProcList .
+    op __ : ProcList ProcList -> ProcList [ctor assoc id: void] .
+    op __ : RProcList RProcList -> RProcList [ctor ditto] .
+    op __ : WProcList WProcList -> WProcList [ctor ditto] .
+    op __ : CProcList CProcList -> CProcList [ctor ditto] .
+    op __ : RWProcList RWProcList -> RWProcList [ctor ditto] .
+endfm
+
+mod MCS is
+    pr PROCLIST .
+
+    sort Config . 
+    op {_|_|_} : ProcList ProcList ProcList -> Config [ctor] .
+    
+    vars PL1 PL2 PL3 PL4 PL5 PL6 : ProcList .
+    vars P1 P2 P3 P4 P5 P6 : Proc .
+    vars NePL1 NePL2 NePL3 NePL4 NePL5 NePL6 : ProcList .
+    vars CPL1 CPL2 CPL3 CPL4 CPL5 : CProcList .
+    vars WPL1 WPL2 WPL3 WPL4 WPL5 : WProcList .
+    vars RPL1 RPL2 RPL3 RPL4 RPL5 : RProcList .
+    vars RWPL1 RWPL2 RWPL3 RWPL4 RWPL5 : RWProcList .
+    vars L L1 L2 : Loc .
+    vars B B1 B2 : IBool .
+    var CP : CProc .
+
+    rl [rs] :
+       { PL1 | PL2 | PL4 (pc: rs, lock: B) PL5 }
+    => { PL1 | PL2 | PL4 (pc: l1, lock: B) PL5 } [narrowing] .
+
+    rl [want] : --- nextp := nop;
+       { PL1 | PL2 | PL4 (pc: l1, lock: B) PL5 }
+    => { PL1 | PL2 | PL4 (pc: l2, lock: B) PL5 } [narrowing] .
+
+    rl [stprd] : --- predep := fetch&store(glock,p);
+       { PL1     | PL2               | PL4 (pc: l2, lock: B) PL5 }
+    => { PL1 PL2 | (pc: l3, lock: B) | PL4                   PL5 } [narrowing] .
+
+    rl [chprdElse] : --- if predep  ̸= nop -> Then l4 -> Else cs
+       { NePL1 | (pc: l3, lock: B) | PL4 } 
+    => { NePL1 | (pc: l4, lock: B) | PL4 } [narrowing] .
+       
+    rl [chprdElse] : --- if predep  ̸= nop -> Then l4 -> Else cs
+       { void              | (pc: l3, lock: B) | PL4 } 
+    => { (pc: cs, lock: B) | void              | PL4 }  [narrowing] .
+
+    rl [stlck] : --- lockp := true
+       { PL1 | (pc: l4, lock: B) | PL2 } 
+    => { PL1 | (pc: l5, lock: tt) | PL2 } [narrowing] .
+
+    rl [stnpr] : --- nextpredep := p;
+       { PL1 | (pc: l5, lock: B) | PL2 } 
+    => { PL1 | (pc: l6, lock: B) | PL2 } [narrowing] .
+
+    rl [chlck] : --- repeat while lockp -> Then l6 -> Else cs
+       { PL1 | (pc: l6, lock: tt) | PL2 } 
+    => { PL1 | (pc: l6, lock: tt) | PL2 } [narrowing] .
+
+    rl [chlck] : --- repeat while lockp -> Then l6 -> Else cs
+       { PL1 | (pc: l6, lock: ff) | PL2 } 
+    => { PL1 | (pc: cs, lock: ff) | PL2 } [narrowing] .
+
+    rl [exit] : --- critical section
+       { PL1 | (pc: cs, lock: B) | PL2 } 
+    => { PL1 | (pc: l7, lock: B) | PL2 } [narrowing] .
+
+    rl [chknxtThen] : --- if nextp = nop -> Then l8 -> Else l11
+       { PL1 (pc: l7, lock: B) | PL2 | PL4 }
+    => { PL1 (pc: l8, lock: B) | PL2 | PL4 } [narrowing] .
+
+    rl [chlknxtElse] : --- if nextp = nop -> Then l8 -> Else l11
+       { PL1 (pc:  l7, lock: B) NePL2 | PL2 | PL4 }
+    => { PL1 (pc: l11, lock: B) NePL2 | PL2 | PL4 } [narrowing] .
+
+    rl [chglkThen] : --- comp&swap(glock, p, nop) then -> l9 else -> l10
+       { PL1                   | (pc: l8, lock: B) | PL4 }
+    => { PL1 (pc: l9, lock: B) | void              | PL4 } [narrowing] .
+
+    rl [chglkElse] : --- comp&swap(glock, p, nop) then -> l9 else -> l10
+       { PL1 (pc:  l8, lock: B) PL2 | PL2 | PL4 }
+    => { PL1 (pc: l10, lock: B) PL2 | PL2 | PL4 } [narrowing] .
+
+    rl [go2rs1] : --- goto rs
+       { PL1 (pc: l9, lock: B)| PL2 | PL4 }
+    => { PL1 (pc: rs, lock: B) | PL2 | PL4 } [narrowing] .
+
+    rl [rpnxThen] : --- repeat while nextp = nop -> Then l10 -> Else l11
+       { PL1 (pc: l10, lock: B) | PL2 | PL4 }
+    => { PL1 (pc: l10, lock: B) | PL2 | PL4 } [narrowing] .
+
+    rl [rpnxElse] : --- repeat while nextp = nop -> Then l10 -> Else l11
+       { PL1 (pc: l10, lock: B) NePL2 | PL3 | PL4 }
+    => { PL1 (pc: l11, lock: B) NePL2 | PL3 | PL4 } [narrowing] .
+
+    rl [stlnx] : --- locknextp := false
+       { PL1 (pc: l11, lock: B1) (pc: L, lock: B2) PL2 | PL3 | PL4 }
+    => { PL1 (pc: l12, lock: B1) (pc: L, lock: ff) PL2 | PL3 | PL4 } [narrowing] .
+
+    rl [go2rs2] : --- goto rs
+       (pc: l12, lock: B)
+    => (pc: rs, lock: B) [narrowing] .
+
+endm
+
+--- Proving cs is reachable
+{fold,path} vu-narrow 
+   { void | void | RPL1 }
+\/ { RWPL1 | RWPL2 | RPL2 }
+\/ { (pc: cs, lock: B) | void | RPL3 }  
+=>* C:Config .
+
+--- Proving cs is reachable
+{fold,path} vu-narrow { RWPL1 | RWPL2 | RPL3 } 
+=>* {PL1 (pc: cs, lock: B1) | PL2 | PL3 } .
+
+--- Negatively prove the mutex property
+{fold,path} vu-narrow { WPL1 | WPL2 | WPL3 } 
+=>* {PL1 (pc: cs, lock: B1) (pc: cs, lock: B2) | PL2 | PL3 } .
+eof

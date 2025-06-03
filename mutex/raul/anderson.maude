@@ -1,7 +1,7 @@
 fmod LOC is
-    sorts RsLoc WsLoc RwLoc CsLoc Loc .
-    subsorts RsLoc WsLoc < RwLoc .
-    subsorts RwLoc CsLoc < Loc .
+    sorts RsLoc WsLoc RWLoc CsLoc Loc .
+    subsorts RsLoc WsLoc < RWLoc .
+    subsorts RWLoc CsLoc < Loc .
 
     op rs : -> RsLoc [ctor] .
     op ws : -> WsLoc [ctor] .
@@ -10,6 +10,7 @@ endfm
 
 fmod PID is
     sort Pid .
+    ops a b c : -> Pid .
 endfm
 
 fmod NAT-FVP is

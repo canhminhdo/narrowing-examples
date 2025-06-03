@@ -1,85 +1,105 @@
 fmod LOC is
-    sorts RsLoc WsLoc RwLoc CsLoc Loc .
-    subsorts RsLoc WsLoc < RwLoc .
-    subsorts RwLoc CsLoc < Loc .
-
-    op rs : -> RsLoc [ctor] .
-    op ws : -> WsLoc [ctor] .
-    op cs : -> CsLoc [ctor] .
+    sorts RLoc WLoc RWLoc CLoc Loc .
+    subsorts RLoc WLoc < RWLoc .
+    subsorts RWLoc CLoc < Loc .
+    op rs : -> RLoc [ctor] .
+    op ws : -> WLoc [ctor] .
+    op cs : -> CLoc [ctor] .
 endfm
 
 fmod PROC is
     pr LOC .
-    sorts RsProc WsProc RWProc CsProc IProc Proc .
-    subsorts RsProc WsProc < RWProc .
-    subsorts RWProc CsProc < IProc < Proc .
-
-    op p:_ : Loc -> Proc [ctor] .
-    op p:_ : RsLoc -> RsProc [ctor] .
-    op p:_ : WsLoc -> WsProc [ctor] .
-    op p:_ : CsLoc -> CsProc [ctor] .
-    op [_] : Proc -> IProc [ctor] .
+    sorts RProc WProc RWProc CProc TProc Proc .
+    subsorts RProc WProc < RWProc .
+    subsorts RWProc CProc < TProc < Proc .
+    op < p:_ > : Loc -> Proc [ctor] .
+    op < p:_ > : RLoc -> RProc [ctor] .
+    op < p:_ > : WLoc -> WProc [ctor] .
+    op < p:_ > : CLoc -> CProc [ctor] .
+    op [_] : Proc -> TProc [ctor] .
 endfm
 
 fmod PROC-LIST is
     pr PROC .
-    sorts RsProcList WsProcList RWProcList CsProcList ProcList .
-    subsorts RsProcList WsProcList < RWProcList .
-    subsorts RWProcList CsProcList < ProcList .
-    subsort RsProc < RsProcList .
-    subsort WsProc < WsProcList .
-    subsort CsProc < CsProcList .
+    sorts EmpProcList RProcList WProcList RWProcList CProcList ProcList .
+    subsorts RProcList WProcList < RWProcList .
+    subsorts RWProcList CProcList < ProcList .
+    subsorts EmpProcList < RProcList WProcList CProcList .
+    subsort RProc < RProcList .
+    subsort WProc < WProcList .
+    subsort CProc < CProcList .
     subsort Proc < ProcList .
-
-    op empty : -> ProcList [ctor] .
-    op __ : ProcList ProcList -> ProcList [ctor assoc id: empty] .
-    op __ : RsProcList RsProcList -> RsProcList [ctor ditto] .
-    op __ : WsProcList WsProcList -> WsProcList [ctor ditto] .
-    op __ : CsProcList CsProcList -> CsProcList [ctor ditto] .
+    op empty : -> EmpProcList [ctor] .
+    op __ : EmpProcList EmpProcList -> EmpProcList [ctor assoc id: empty] .
+    op __ : ProcList ProcList -> ProcList [ctor ditto] .
+    op __ : RProcList RProcList -> RProcList [ctor ditto] .
+    op __ : WProcList WProcList -> WProcList [ctor ditto] .
+    op __ : CProcList CProcList -> CProcList [ctor ditto] .
     op __ : RWProcList RWProcList -> RWProcList [ctor ditto] .
 endfm
 
 mod ANDERSON is
     pr PROC-LIST .
     sort Config . 
-
     op {_} : ProcList -> Config [ctor] .
-  
-    vars RWPLIST RWPLIST' RWPLIST'' : RWProcList .
-    var RSPLIST RSPLIST' : RsProcList .
+
     vars PLIST PLIST' PLIST'' PLIST''' : ProcList . 
-    var PROC : Proc .
-    var IPROC : IProc .
-    vars CSPROC CSPROC' : CsProc .
-    vars L L' : Loc .
+    vars RWPLIST RWPLIST' RWPLIST'' : RWProcList .
+    var RSPLIST : RProcList .
+    vars RWPROC RWPROC' : RWProc .
+    vars CPROC CPROC' : CProc .
+    vars RPROC RPROC' RPROC'' : RProc .
 
-    rl [want-1] : {PLIST (p: rs) PLIST'} 
-               => {PLIST (p: ws) PLIST'} [narrowing] .
+    rl [want-1] : 
+        {PLIST < p: rs > PLIST'} 
+     => {PLIST < p: ws > PLIST'} [narrowing] .
 
-    rl [want-2] : {PLIST [p: rs] PLIST'} 
-               => {PLIST [p: ws] PLIST'} [narrowing] .
+    rl [want-2] : 
+        {PLIST [< p: rs >] PLIST'} 
+     => {PLIST [< p: ws >] PLIST'} [narrowing] .
 
-    rl [try] : {PLIST [p: ws] PLIST'} 
-            => {PLIST [p: cs] PLIST'} [narrowing] .
+    rl [try] : 
+        {PLIST [< p: ws >] PLIST'} 
+     => {PLIST [< p: cs >] PLIST'} [narrowing] .
 
-    rl [exit-1] : {PLIST [p: cs] PLIST' (p: ws) PLIST''} 
-               => {PLIST (p: rs) PLIST' [p: ws] PLIST''} [narrowing] .
+    rl [repeat] : 
+        {PLIST < p: ws > PLIST'} 
+     => {PLIST < p: ws > PLIST'} [narrowing] .
 
-    rl [exit-2] : {PLIST (p: ws) PLIST' [p: cs] PLIST''} 
-               => {PLIST [p: ws] PLIST' (p: rs) PLIST''} [narrowing] .
+    rl [exit-1] : 
+        {PLIST [< p: cs >] < p: ws > PLIST'} 
+     => {PLIST < p: rs > [< p: ws >] PLIST'} [narrowing] .
+
+    rl [exit-2] : 
+        {< p: ws > PLIST [< p: cs >] } 
+     => {[< p: ws >] PLIST < p: rs >} [narrowing] .
 endm
 
+--- Proving cs is reachable (not folding)
+{fold} vu-narrow [1] in ANDERSON : 
+    { [RPROC] RSPLIST } 
+=>* { PLIST [CPROC] PLIST' } .
+
 --- Proving cs is reachable
-{fold,path} vu-narrow [1] in ANDERSON : 
-    { RSPLIST [p: rs] RSPLIST' } 
-=>* { PLIST [CSPROC] PLIST' } .
+{fold} vu-narrow in ANDERSON : 
+    { RWPLIST [RPROC] RWPLIST' } 
+=>* { PLIST [CPROC] PLIST' } .
+
+--- Negatively prove the mutex property for a fixed number of processes
+{fold} vu-narrow in ANDERSON : 
+    { [RPROC] RPROC' RPROC'' } 
+=>* { PLIST [CPROC] PLIST' [CPROC] PLIST'' } .
 
 --- Negatively prove the mutex property
-{fold,path} vu-narrow in ANDERSON : 
-    { RWPLIST [p: rs] RWPLIST' } 
-=>* { PLIST [CSPROC] PLIST' [CSPROC'] PLIST'' } .
+{fold} vu-narrow in ANDERSON : 
+    { RWPLIST [RPROC] RWPLIST' } 
+=>* { PLIST [CPROC] PLIST' [CPROC'] PLIST'' } .
 
 --- Negatively prove the mutex property (wrong initial state, should get solutions)
-{fold,path} vu-narrow in ANDERSON : 
-    { RWPLIST [p: rs] RWPLIST' [p: rs] RWPLIST''} 
-=>* { PLIST' [CSPROC] PLIST'' [CSPROC'] PLIST''' } .
+{fold} vu-narrow in ANDERSON : 
+    { RWPLIST [RPROC] RWPLIST' [RPROC'] RWPLIST''} 
+=>* { PLIST' [< p: cs >] PLIST'' [< p: cs >] PLIST''' } .
+
+vu-narrow [,1] in ANDERSON : 
+    { RWPLIST [RPROC] RWPLIST } 
+=>* C:Config .

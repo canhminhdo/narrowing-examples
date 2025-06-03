@@ -1,11 +1,10 @@
 fmod LOC is
-    sorts RsLoc WsLoc RWLoc CsLoc Loc .
-    subsorts RsLoc WsLoc < RWLoc .
-    subsorts RWLoc CsLoc < Loc .
-
-    op rs : -> RsLoc [ctor] .
-    op ws : -> WsLoc [ctor] .
-    op cs : -> CsLoc [ctor] .
+    sorts RLoc WLoc RWLoc CLoc Loc .
+    subsorts RLoc WLoc < RWLoc .
+    subsorts RWLoc CLoc < Loc .
+    op rs : -> RLoc [ctor] .
+    op ws : -> WLoc [ctor] .
+    op cs : -> CLoc [ctor] .
 endfm
 
 fmod PID is
@@ -16,106 +15,98 @@ endfm
 fmod PROC is
     pr PID .
     pr LOC .
-    sorts RsProc WsProc RWProc CsProc Proc .
-    subsorts RsProc WsProc < RWProc .
-    subsorts RWProc CsProc < Proc .
-
-    op pc[_]:_ : Pid Loc -> Proc [ctor] .
-    op pc[_]:_ : Pid RsLoc -> RsProc [ctor] .
-    op pc[_]:_ : Pid WsLoc -> WsProc [ctor] .
-    op pc[_]:_ : Pid CsLoc -> CsProc [ctor] .
+    sorts RProc WProc RWProc CProc Proc .
+    subsorts RProc WProc < RWProc .
+    subsorts RWProc CProc < Proc .
+    op < p[_]:_ > : Pid Loc -> Proc [ctor] .
+    op < p[_]:_ > : Pid RLoc -> RProc [ctor] .
+    op < p[_]:_ > : Pid WLoc -> WProc [ctor] .
+    op < p[_]:_ > : Pid CLoc -> CProc [ctor] .
 endfm
 
 fmod PROC-SET is
     pr PROC .
-
-    sorts RsProcSet WsProcSet RWProcSet CsProcSet ProcSet .
-    subsorts RsProcSet WsProcSet < RWProcSet .
-    subsorts RWProcSet CsProcSet < ProcSet .
-    subsort RsProc < RsProcSet .
-    subsort WsProc < WsProcSet .
-    subsort CsProc < CsProcSet .
+    sorts MTProcSet RProcSet WProcSet RWProcSet CProcSet ProcSet .
+    subsorts RProcSet WProcSet < RWProcSet .
+    subsorts RWProcSet CProcSet < ProcSet .
+    subsorts MTProcSet < RProcSet WProcSet CProcSet .
+    subsort RProc < RProcSet .
+    subsort WProc < WProcSet .
+    subsort CProc < CProcSet .
     subsort Proc < ProcSet .
-
-    op void : -> ProcSet [ctor] .
-    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
-    op __ : RsProcSet RsProcSet -> RsProcSet [ctor ditto] .
-    op __ : WsProcSet WsProcSet -> WsProcSet [ctor ditto] .
-    op __ : CsProcSet CsProcSet -> CsProcSet [ctor ditto] .
+    op mt : -> MTProcSet [ctor] .
+    op __ : MTProcSet MTProcSet -> MTProcSet [ctor assoc comm id: mt] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor ditto] .
+    op __ : RProcSet RProcSet -> RProcSet [ctor ditto] .
+    op __ : WProcSet WProcSet -> WProcSet [ctor ditto] .
+    op __ : CProcSet CProcSet -> CProcSet [ctor ditto] .
     op __ : RWProcSet RWProcSet -> RWProcSet [ctor ditto] .
 endfm
 
-fmod QUEUE {D :: TRIV} is
-    sort Queue{D} .
-    subsort D$Elt < Queue{D} .
+fmod QUEUE is
+    pr PID .
+    sort Queue .
+    subsort Pid < Queue .
     
-    op empq : -> Queue{D} [ctor] .
-    op _|_ : Queue{D} Queue{D} -> Queue{D} [ctor assoc id: empq] .
-    op deq : Queue{D} -> Queue{D} .
-    
-    var Q : Queue{D} .
-    var E : D$Elt . 
-    
-    eq deq(empq) = empq .
-    eq deq(E | Q) = Q .
+    op empq : -> Queue [ctor] .
+    op _|_ : Queue Queue -> Queue [ctor assoc id: empq] .
+    op deq : Queue -> Queue .
 endfm
 
-view Pid from TRIV to PID is
-    sort Elt to Pid .
-endv
-
 mod QLOCK is
-    pr QUEUE{Pid} .
+    pr QUEUE .
     pr PROC-SET .
-
     sort Config .
+    op {_|`queue:_} : ProcSet Queue -> Config [ctor] .
     
-    op {_|`queue:_} : ProcSet Queue{Pid} -> Config [ctor] .
-    
-    vars P P1 P2 P3 : Pid .
-    vars Q Q1 Q2 : Queue{Pid} .
-    vars CPROC1 CPROC2 : CsProc .
+    var P : Pid .
+    vars Q Q' : Queue .
+    vars RWPROC RWPROC' RWPROC'' : RWProc .
+    vars CPROC CPROC' : CProc .
     var PROC : Proc .
-    var RsPSET : RsProcSet .
+    var RPSET : RProcSet .
     var RWPSET : RWProcSet .
     var PSET : ProcSet . 
 
     eq [idem] : PROC PROC = PROC .
 
     rl [want] : 
-        {(pc[P]: rs) PSET | queue: Q }
-    =>  {(pc[P]: ws) PSET | queue: (Q | P)} [narrowing] .
+        {< p[P]: rs > PSET | queue: Q }
+    =>  {< p[P]: ws > PSET | queue: (Q | P)} [narrowing] .
 
     rl [try] : 
-        {(pc[P]: ws) PSET | queue: (P | Q) }
-    =>  {(pc[P]: cs) PSET | queue: (P | Q) } [narrowing] .          
+        {< p[P]: ws > PSET | queue: (P | Q) }
+    =>  {< p[P]: cs > PSET | queue: (P | Q) } [narrowing] .          
+
+    rl [repeat] : 
+        {< p[P]: ws > PSET | queue: Q }
+    =>  {< p[P]: ws > PSET | queue: Q } [narrowing] . 
 
     rl [exit] : 
-        {(pc[P]: cs) PSET | queue: Q }
-    =>  {(pc[P]: rs) PSET | queue: deq(Q) } [narrowing] .
+        {< p[P]: cs > PSET | queue: Q }
+    =>  {< p[P]: rs > PSET | queue: deq(Q) } [narrowing] .
 endm
 
---- Proving cs reachable (initial set)
+--- Proving cs reachable (not folding)
 {fold} vu-narrow [1] in QLOCK : 
-    {RsPSET | queue: empq}
-=>* {(pc[P]: cs) PSET | queue: Q} .
+    {RPSET | queue: empq}
+=>* {CPROC PSET | queue: Q} .
 
---- Proving cs reachable (only variables)
+--- Proving cs reachable
 {fold} vu-narrow in QLOCK : 
-    {RWPSET | queue: Q1}
-=>* {(pc[P]: cs) PSET | queue: Q2} .
+    {RWPSET | queue: Q}
+=>* {CPROC PSET | queue: Q'} .
 
 --- Negatively prove the mutex property for a fixed number of processes
 {fold} vu-narrow in QLOCK : 
-    {(pc[a]: rs) (pc[b]: rs) (pc[c]: rs) | queue: empq}
-=>* {(pc[P1]: cs) (pc[P2]: cs) (pc[P3]: rs) | queue: Q} .
+    {RWPROC RWPROC' RWPROC'' | queue: empq}
+=>* {CPROC CPROC' PSET | queue: Q} .
 
---- Negatively prove the mutex property (Using only variables)
+--- Negatively prove the mutex property
 {fold} vu-narrow in QLOCK : 
-    {RWPSET | queue: Q1}
-=>* {CPROC1 CPROC2 PSET | queue: Q2} .
+    {RWPSET | queue: Q}
+=>* {CPROC CPROC' PSET | queue: Q'} .
 
---- Negatively prove the mutex property (Using only variables)
-{fold} vu-narrow in QLOCK : 
-    {RWPSET | queue: Q1}
-=>* {CPROC1 CPROC2 PSET | queue: Q2} .
+{path} vu-narrow [,1]in QLOCK : 
+    {RWPSET < p[P]: cs > | queue: P | Q}
+=>* C:Config .

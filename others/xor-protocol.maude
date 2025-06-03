@@ -1,0 +1,78 @@
+fmod EXCLUSIVE-OR is
+   protecting META-LEVEL .
+
+  sort XOR .  
+  op mt : -> XOR .
+  op _*_ : XOR XOR -> XOR [assoc comm] .
+  vars X Y Z U V : [XOR] .
+  eq [idem] :     X * X = mt    [variant] .
+  eq [idem-Coh] : X * X * Z = Z [variant] .
+  eq [id] :       X * mt = X    [variant] .
+endfm
+
+mod XOR-PROTOCOL is
+  protecting EXCLUSIVE-OR .
+
+  sorts Name Nonce Fresh Msg .
+  subsort Name Nonce XOR < Msg .
+  subsort Nonce < XOR .
+
+  ops a b c : -> Name .
+
+  op n : Name Fresh -> Nonce .
+  
+  op pk : Name Msg -> Msg .
+  ops r1 r2 r3 : -> Fresh .
+
+  sort SMsg .
+  op + : Msg -> SMsg .
+  op - : Msg -> SMsg .
+
+  sort SMsgList . subsort SMsg < SMsgList .
+  op nil : -> SMsgList .
+  op _`,_ : SMsgList SMsgList -> SMsgList [assoc] .
+
+  sort Strand .
+  op `[_|_`] : SMsgList SMsgList -> Strand .
+
+  sort StrandSet NonEmptyStrandSet .
+  subsort Strand < NonEmptyStrandSet < StrandSet .
+  op mt : -> StrandSet .
+  op _&_ : StrandSet StrandSet -> StrandSet [assoc comm id: mt] .
+  op _&_ : NonEmptyStrandSet StrandSet -> NonEmptyStrandSet [ditto] .
+
+  sort IntruderKnowledge .
+  op mt : -> IntruderKnowledge .
+  op inI : Msg -> IntruderKnowledge .
+  op nI : Msg -> IntruderKnowledge .
+  op _`,_ : IntruderKnowledge IntruderKnowledge -> IntruderKnowledge [assoc comm id: mt] .
+
+  sort State .
+  op Sta : -> State .
+  op `{_`{_`}`} : StrandSet IntruderKnowledge -> State .
+
+  vars IK IK1 IK2 : IntruderKnowledge .
+  vars SS SS1 SS2 : StrandSet .
+  vars NeSS1 NeSS2 : NonEmptyStrandSet .
+  vars A B : Name .
+  vars X Y Z U V : [XOR] .
+  var M : Msg .
+  vars L1 L2 : SMsgList .
+  vars NA NB : Nonce .
+
+  eq [idempotence] : NeSS1 & NeSS1 & NeSS2 = NeSS1 & NeSS2 .
+
+  rl [r1] : { (SS & [ ( L1 , -(M)) | L2 ])  { (inI(M) , IK) } } =>
+            { (SS & [ L1 | (-(M) , L2) ])  { (inI(M) , IK) } } [narrowing] .
+  rl [r2] : { (SS & [ (L1 , +(M)) | L2 ])  { (inI(M) , IK) } } =>
+            { (SS & [ L1 | (+(M) , L2) ])  { (nI(M) , IK) } } [narrowing] .
+endm
+
+{fold} vu-narrow {filter, delay} in XOR-PROTOCOL :
+{[nil, +(pk(a, n(b, r1))), -(pk(b, Y)), +(Y * n(b, r1)) | nil]
+& [nil, -(pk(a, X)), +(pk(b, n(a, r2))), -(X * n(a, r2)) | nil]
+{inI(X * n(a, r2)), inI(pk(a, X)), inI(pk(b, Y))}}
+=>*
+{[nil | + (pk(a, n(b, r1))), -(pk(b, Y)), +(Y * n(b, r1)), nil]
+& [nil | - (pk(a, X)), +(pk(b, n(a, r2))), -(X * n(a, r2)), nil]
+{nI(X * n(a, r2)), nI(pk(a, X)), nI(pk(b, Y))}} .

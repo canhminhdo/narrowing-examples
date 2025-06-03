@@ -1,84 +1,68 @@
 fmod LOC is
-    sorts RsLoc CsLoc Loc .
-    subsorts RsLoc CsLoc < Loc .
-
-    op rs : -> RsLoc [ctor] .
-    op cs : -> CsLoc [ctor] .
+    sorts RLoc CLoc Loc .
+    subsorts RLoc CLoc < Loc .
+    op rs : -> RLoc [ctor] .
+    op cs : -> CLoc [ctor] .
 endfm 
 
-fmod PID is
-    sort Pid .
-    ops a b c : -> Pid .
-endfm
-
 fmod PROC is
-    pr PID .
     pr LOC .
-    sorts RsProc CsProc Proc .
-    subsorts RsProc CsProc < Proc .
-
-    op (pc[_]:_) : Pid Loc -> Proc [ctor] .
-    op (pc[_]:_) : Pid RsLoc -> RsProc [ctor] .
-    op (pc[_]:_) : Pid CsLoc -> CsProc [ctor] .
+    sorts RProc CProc Proc .
+    subsorts RProc CProc < Proc .
+    op < p:_ > : Loc -> Proc [ctor] .
+    op < p:_ > : RLoc -> RProc [ctor] .
+    op < p:_ > : CLoc -> CProc [ctor] .
 endfm
 
 fmod PROC-SET is
     pr PROC .
-
-    sorts RsProcSet CsProcSet ProcSet .
-    subsorts RsProc < RsProcSet < ProcSet .
-    subsorts CsProc < CsProcSet < ProcSet .
+    sorts MTProcSet RProcSet CProcSet ProcSet .
+    subsorts MTProcSet < RProcSet CProcSet < ProcSet .
+    subsort RProc < RProcSet .
+    subsort CProc < CProcSet .
     subsort Proc < ProcSet .
-
-    op void : -> ProcSet [ctor] .
-    op __ : ProcSet ProcSet -> ProcSet [ctor assoc comm id: void] .
-    op __ : RsProcSet RsProcSet -> RsProcSet [ctor ditto] .
-    op __ : CsProcSet CsProcSet -> CsProcSet [ctor ditto] .
+    op mt : -> MTProcSet [ctor] .
+    op __ : MTProcSet MTProcSet -> MTProcSet [ctor assoc comm id: mt] .
+    op __ : ProcSet ProcSet -> ProcSet [ctor ditto] .
+    op __ : RProcSet RProcSet -> RProcSet [ctor ditto] .
+    op __ : CProcSet CProcSet -> CProcSet [ctor ditto] .
 endfm
 
 mod TAS is
     pr PROC-SET .
-    
     sort Config . 
-
     op {_|`locked:_} : ProcSet Bool -> Config [ctor] .
 
-    vars P P1 P2 P3 : Pid .
-    vars B B1 B2 : Bool .
-    vars CPROC1 CPROC2 : CsProc .
-    var RsPSET : RsProcSet .
+    vars B B' : Bool .
+    vars RPROC RPROC' RPROC'' : RProc .
+    vars CPROC CPROC' : CProc .
+    var RPSET : RProcSet .
     var PSET : ProcSet .   
     
+    rl [repeat] : 
+        {< p: rs > PSET | locked: true}
+    =>  {< p: rs > PSET | locked: true} [narrowing] .
+
     rl [enter] : 
-        {(pc[P]: rs) PSET | locked: false}
-    =>  {(pc[P]: cs) PSET | locked: true} [narrowing] .
+        {< p: rs > PSET | locked: false}
+    =>  {< p: cs > PSET | locked: true} [narrowing] .
 
     rl [exit] : 
-        {(pc[P]: cs) PSET | locked: true}
-    =>  {(pc[P]: rs) PSET | locked: false} [narrowing] .
+        {< p: cs > PSET | locked: true}
+    =>  {< p: rs > PSET | locked: false} [narrowing] .
 endm
 
 --- Proving cs reachable
 {fold} vu-narrow in TAS : 
-    {RsPSET | locked: false} 
-=>* {(pc[P]: cs) PSET | locked: B} .
+    {RPSET | locked: false} 
+=>* {CPROC PSET | locked: B} .
 
 --- Negatively prove the mutex property for a fixed number of processes
 {fold} vu-narrow in TAS : 
-    {(pc[a]: cs) (pc[b]: cs) (pc[c]: cs) | locked: false} 
-=>* {(pc[P1]: cs) (pc[P2]: cs) PSET | locked: true} .
-
---- Negatively prove the mutex property
-{fold} vu-narrow in TAS : 
-    {RsPSET | locked: false} 
-=>* {(pc[P1]: cs) (pc[P2]: cs) PSET | locked: B} .
+    {RPROC RPROC' RPROC'' | locked: false} 
+=>* {CPROC CPROC' PSET | locked: B'} .
 
 --- Negatively prove the mutex property (Using only variables)
 {fold} vu-narrow in TAS : 
-    {RsPSET | locked: B1} 
-=>* {CPROC1 CPROC2 PSET | locked: B2} .
-
-vu-narrow [,1]in TAS : 
-    {RsPSET pc[X:Pid]: cs | locked: true}
-=>* C:Config .
-
+    {RPSET | locked: B} 
+=>* {CPROC CPROC' PSET | locked: B'} .
