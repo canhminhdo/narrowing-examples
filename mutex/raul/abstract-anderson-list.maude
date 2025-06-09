@@ -67,12 +67,12 @@ mod ANDERSON is
      => {PLIST < p: ws > PLIST'} [narrowing] .
 
     rl [exit-1] : 
-        {PLIST [< p: cs >] < p: ws > PLIST'} 
-     => {PLIST < p: rs > [< p: ws >] PLIST'} [narrowing] .
+        {PLIST [< p: cs >] RWPROC PLIST'} 
+     => {PLIST < p: rs > [RWPROC] PLIST'} [narrowing] .
 
     rl [exit-2] : 
-        {< p: ws > PLIST [< p: cs >] } 
-     => {[< p: ws >] PLIST < p: rs >} [narrowing] .
+        {RWPROC PLIST [< p: cs >] } 
+     => {[RWPROC] PLIST < p: rs >} [narrowing] .
 endm
 
 --- Proving cs is reachable (not folding)
